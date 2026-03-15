@@ -1,6 +1,9 @@
 "use client"
 
-import { useRef, useCallback, useEffect, useState } from "react"
+import { useEffect, useCallback } from "react"
+import { useEditor, EditorContent } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import Placeholder from "@tiptap/extension-placeholder"
 import { Bold, Italic, Heading2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -11,151 +14,129 @@ interface SimpleWysiwygProps {
   className?: string
 }
 
-export function SimpleWysiwyg({ value, onChange, placeholder, className }: SimpleWysiwygProps) {
-  const editorRef = useRef<HTMLDivElement>(null)
-  const [isUpdatingFromProp, setIsUpdatingFromProp] = useState(false)
-
-  // Convert markdown to styled HTML for display
-  const getDisplayHTML = useCallback((text: string) => {
-    if (!text) return ""
-    
-    return text
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/^## (.+)$/gm, "<div class='text-lg font-semibold mt-3 mb-1.5'>$1</div>")
-      .replace(/^# (.+)$/gm, "<div class='text-xl font-bold mt-4 mb-2'>$1</div>")
-      .replace(/\*\*(.+?)\*\*/g, "<strong class='font-semibold'>$1</strong>")
-      .replace(/\*(.+?)\*/g, "<em class='italic'>$1</em>")
-      .replace(/`([^`]+)`/g, "<code class='bg-muted px-1 py-0.5 rounded text-xs font-mono'>$1</code>")
-      .replace(/^- (.+)$/gm, "<div class='ml-4 my-1'>• $1</div>")
-      .replace(/\n\n/g, "<div class='h-2'></div>")
-      .replace(/\n/g, "<br>")
-  }, [])
-
-  // Extract plain text from editor (strips HTML but keeps markdown structure)
-  const extractMarkdown = useCallback(() => {
-    if (!editorRef.current) return value
-
-    const html = editorRef.current.innerHTML
-    let text = html
-      .replace(/<div[^>]*class='text-lg[^']*'[^>]*>(.+?)<\/div>/g, "## $1")
-      .replace(/<div[^>]*class='text-xl[^']*'[^>]*>(.+?)<\/div>/g, "# $1")
-      .replace(/<strong[^>]*class='font-semibold'[^>]*>(.+?)<\/strong>/g, "**$1**")
-      .replace(/<em[^>]*class='italic'[^>]*>(.+?)<\/em>/g, "*$1*")
-      .replace(/<code[^>]*class='bg-muted[^']*'[^>]*>(.+?)<\/code>/g, "`$1`")
-      .replace(/<div[^>]*class='ml-4[^']*'[^>]*>• (.+?)<\/div>/g, "- $1")
-      .replace(/<div class='h-2'><\/div>/g, "\n")
-      .replace(/<br\s*\/?>/g, "\n")
-      .replace(/<[^>]+>/g, "")
-      .replace(/&amp;/g, "&")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-
-    // Clean up excessive whitespace
-    return text.replace(/\n\n+/g, "\n\n").trim()
-  }, [value])
-
-  // Update editor when prop changes
-  useEffect(() => {
-    if (!editorRef.current || isUpdatingFromProp) return
-    
-    setIsUpdatingFromProp(true)
-    const html = getDisplayHTML(value)
-    editorRef.current.innerHTML = html || `<div class='text-muted-foreground'>${placeholder || "Start writing..."}</div>`
-    setIsUpdatingFromProp(false)
-  }, [value, getDisplayHTML, placeholder])
-
-  const handleInput = useCallback(() => {
-    if (isUpdatingFromProp) return
-    
-    const markdown = extractMarkdown()
-    if (markdown !== value) {
-      onChange(markdown)
-    }
-  }, [isUpdatingFromProp, value, extractMarkdown, onChange])
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.metaKey || e.ctrlKey) {
-      if (e.key === "b") {
-        e.preventDefault()
-        document.execCommand("bold", false)
-      } else if (e.key === "i") {
-        e.preventDefault()
-        document.execCommand("italic", false)
+// Convert markdown to HTML for Tiptap
+function markdownToHtml(markdown: string): string {
+  if (!markdown) return ""
+  
+  return markdown
+    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
+    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/^- (.+)$/gm, "<li>$1</li>")
+    .replace(/(<li>.*<\/li>)/s, "<ul>$1</ul>")
+    .replace(/\n\n/g, "</p><p>")
+    .replace(/\n/g, "<br>")
+    .replace(/^(.+)$/gm, (match) => {
+      if (match.startsWith("<h") || match.startsWith("<ul") || match.startsWith("<li") || match.startsWith("</")) {
+        return match
       }
+      return `<p>${match}</p>`
+    })
+}
+
+// Convert HTML back to markdown
+function htmlToMarkdown(html: string): string {
+  if (!html) return ""
+  
+  return html
+    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n")
+    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n")
+    .replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**")
+    .replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**")
+    .replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*")
+    .replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*")
+    .replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1\n")
+    .replace(/<ul[^>]*>|<\/ul>/gi, "")
+    .replace(/<p[^>]*>(.*?)<\/p>/gi, "$1\n\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
+export function SimpleWysiwyg({ value, onChange, placeholder, className }: SimpleWysiwygProps) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2],
+        },
+      }),
+      Placeholder.configure({
+        placeholder: placeholder || "Start writing...",
+      }),
+    ],
+    content: markdownToHtml(value),
+    editorProps: {
+      attributes: {
+        class: cn(
+          "flex-1 min-h-[300px] p-4 text-sm leading-relaxed outline-none overflow-y-auto",
+          "prose prose-sm max-w-none",
+          "[&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2",
+          "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1.5",
+          "[&_p]:my-1",
+          "[&_ul]:list-disc [&_ul]:ml-4",
+          "[&_li]:my-0.5"
+        ),
+      },
+    },
+    onUpdate: ({ editor }) => {
+      const html = editor.getHTML()
+      const markdown = htmlToMarkdown(html)
+      onChange(markdown)
+    },
+  })
+
+  // Update editor content when value prop changes externally
+  useEffect(() => {
+    if (editor && value !== htmlToMarkdown(editor.getHTML())) {
+      editor.commands.setContent(markdownToHtml(value))
     }
-  }, [])
+  }, [editor, value])
 
-  const insertFormatting = useCallback((before: string, after: string) => {
-    const selection = window.getSelection()
-    if (!selection || selection.rangeCount === 0) return
+  const toggleBold = useCallback(() => {
+    editor?.chain().focus().toggleBold().run()
+  }, [editor])
 
-    const range = selection.getRangeAt(0)
-    const selectedText = range.toString()
-    
-    const span = document.createElement("span")
-    span.innerHTML = before + selectedText + after
-    range.deleteContents()
-    range.insertNode(span)
+  const toggleItalic = useCallback(() => {
+    editor?.chain().focus().toggleItalic().run()
+  }, [editor])
 
-    editorRef.current?.focus()
-    handleInput()
-  }, [handleInput])
-
-  const insertAtLineStart = useCallback((prefix: string) => {
-    const selection = window.getSelection()
-    if (!selection || !editorRef.current) return
-
-    const div = document.createElement("div")
-    div.className = prefix === "## " ? "text-lg font-semibold mt-3 mb-1.5" : ""
-    div.textContent = prefix
-    editorRef.current.appendChild(div)
-    
-    editorRef.current.focus()
-    handleInput()
-  }, [handleInput])
+  const toggleHeading = useCallback(() => {
+    editor?.chain().focus().toggleHeading({ level: 2 }).run()
+  }, [editor])
 
   return (
     <div className={cn("flex flex-col border rounded-md overflow-hidden bg-background", className)}>
       {/* Toolbar */}
       <div className="flex items-center gap-0.5 border-b bg-muted/40 px-2 py-1.5">
         <ToolbarButton 
-          onClick={() => insertFormatting("**", "**")} 
+          onClick={toggleBold} 
           title="Bold (Ctrl+B)"
+          active={editor?.isActive("bold")}
         >
           <Bold className="h-3.5 w-3.5" />
         </ToolbarButton>
         <ToolbarButton 
-          onClick={() => insertFormatting("*", "*")} 
+          onClick={toggleItalic} 
           title="Italic (Ctrl+I)"
+          active={editor?.isActive("italic")}
         >
           <Italic className="h-3.5 w-3.5" />
         </ToolbarButton>
         <div className="w-px h-4 bg-border mx-1" />
         <ToolbarButton 
-          onClick={() => insertAtLineStart("## ")} 
+          onClick={toggleHeading} 
           title="Heading"
+          active={editor?.isActive("heading", { level: 2 })}
         >
           <Heading2 className="h-3.5 w-3.5" />
         </ToolbarButton>
       </div>
 
-      {/* WYSIWYG Editor */}
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
-        onKeyDown={handleKeyDown}
-        className={cn(
-          "flex-1 min-h-[300px] p-4 text-sm leading-relaxed outline-none overflow-y-auto",
-          "bg-transparent focus:ring-0",
-          "prose prose-sm max-w-none",
-          "[&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-muted-foreground"
-        )}
-        data-placeholder={placeholder || "Start writing..."}
-      />
+      {/* Tiptap Editor */}
+      <EditorContent editor={editor} className="flex-1" />
     </div>
   )
 }
@@ -164,10 +145,12 @@ function ToolbarButton({
   children,
   onClick,
   title,
+  active,
 }: {
   children: React.ReactNode
   onClick: () => void
   title?: string
+  active?: boolean
 }) {
   return (
     <button
@@ -178,8 +161,10 @@ function ToolbarButton({
       }}
       title={title}
       className={cn(
-        "h-7 w-7 flex items-center justify-center rounded",
-        "text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+        "h-7 w-7 flex items-center justify-center rounded transition-colors",
+        active 
+          ? "bg-accent text-foreground" 
+          : "text-muted-foreground hover:text-foreground hover:bg-accent"
       )}
     >
       {children}
