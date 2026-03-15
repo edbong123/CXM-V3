@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, RefreshCw, Plus, Loader2, FolderOpen } from "lucide-react"
+import { FileText, Plus, Loader2, BookOpen, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -44,89 +44,114 @@ export function ContextFilesList() {
     }
   }
 
+  // Sort: README first, then alphabetical
+  const sortedFiles = [...files].sort((a, b) => {
+    const aIsReadme = /^readme/i.test(a.name)
+    const bIsReadme = /^readme/i.test(b.name)
+    if (aIsReadme && !bIsReadme) return -1
+    if (!aIsReadme && bIsReadme) return 1
+    return a.name.localeCompare(b.name)
+  })
+
   return (
-    <aside className="flex flex-col h-full w-[260px] min-w-[260px] border-r bg-sidebar">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b">
-        <div className="flex items-center gap-2">
-          <FolderOpen className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">context/</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={fetchFiles}
-            disabled={isLoadingFiles}
-            title="Refresh files"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", isLoadingFiles && "animate-spin")} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={() => setCreateOpen(true)}
-            title="New file"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-        </div>
+    <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
+
+      {/* New file + refresh row */}
+      <div className="px-3 pt-4 pb-2 flex items-center gap-1.5">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex-1 justify-start gap-2 h-9 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-accent font-normal"
+          onClick={() => setCreateOpen(true)}
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New file
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+          onClick={fetchFiles}
+          disabled={isLoadingFiles}
+          title="Refresh"
+        >
+          <RefreshCw className={cn("h-3.5 w-3.5", isLoadingFiles && "animate-spin")} />
+        </Button>
       </div>
 
+      {/* Section label */}
+      <p className="px-4 pt-1 pb-1.5 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+        Context Files
+      </p>
+
       {/* File list */}
-      <div className="flex-1 overflow-y-auto py-1.5">
+      <div className="flex-1 overflow-y-auto">
         {isLoadingFiles ? (
           <div className="flex items-center justify-center py-10 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            <span className="text-sm">Loading files...</span>
+            <span className="text-sm">Loading...</span>
           </div>
-        ) : files.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 px-4 text-center gap-2">
-            <FileText className="h-8 w-8 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground">No markdown files found in context/</p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-1"
-              onClick={() => setCreateOpen(true)}
-            >
+        ) : sortedFiles.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 px-5 text-center gap-3">
+            <FileText className="h-7 w-7 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground leading-snug">No files found in context/</p>
+            <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="h-3.5 w-3.5" />
               New file
             </Button>
           </div>
         ) : (
-          files.map((file) => {
-            const suggestions = getSuggestionsForFile(file.name)
-            const isSelected = selectedFile?.path === file.path
-            return (
-              <button
-                key={file.path}
-                onClick={() => selectFile(file)}
-                className={cn(
-                  "w-full flex items-center justify-between gap-2 px-4 py-2 text-left transition-colors",
-                  "hover:bg-accent hover:text-accent-foreground",
-                  isSelected
-                    ? "bg-accent text-accent-foreground font-medium"
-                    : "text-sidebar-foreground"
-                )}
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  <FileText className={cn("h-3.5 w-3.5 shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
-                  <span className="text-sm truncate">{file.name.replace(/\.md$/, "")}</span>
-                </div>
-                {suggestions.length > 0 && (
-                  <Badge
-                    variant="secondary"
-                    className="h-5 min-w-[20px] px-1.5 text-xs shrink-0 bg-primary/10 text-primary hover:bg-primary/10"
-                  >
-                    {suggestions.length}
-                  </Badge>
-                )}
-              </button>
-            )
-          })
+          <div className="flex flex-col gap-0.5 px-2 pb-4">
+            {sortedFiles.map((file) => {
+              const isReadme = /^readme/i.test(file.name)
+              const suggestions = getSuggestionsForFile(file.name)
+              const isSelected = selectedFile?.path === file.path
+              const displayName = file.name.replace(/\.md$/, "")
+
+              return (
+                <button
+                  key={file.path}
+                  onClick={() => selectFile(file)}
+                  className={cn(
+                    "group w-full flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors",
+                    isSelected
+                      ? "bg-accent text-accent-foreground"
+                      : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {isReadme ? (
+                      <BookOpen className={cn(
+                        "h-3.5 w-3.5 shrink-0",
+                        isSelected ? "text-primary" : "text-muted-foreground"
+                      )} />
+                    ) : (
+                      <FileText className={cn(
+                        "h-3.5 w-3.5 shrink-0",
+                        isSelected ? "text-primary" : "text-muted-foreground/60"
+                      )} />
+                    )}
+                    <span className={cn(
+                      "text-sm truncate",
+                      isReadme && "font-medium"
+                    )}>
+                      {displayName}
+                    </span>
+                  </div>
+                  {suggestions.length > 0 && (
+                    <span className={cn(
+                      "shrink-0 min-w-[18px] h-[18px] rounded-full text-xs flex items-center justify-center font-medium px-1.5",
+                      isSelected
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-muted-foreground"
+                    )}>
+                      {suggestions.length}
+                    </span>
+                  )}
+                </button>
+              )
+            })}
+          </div>
         )}
       </div>
 
