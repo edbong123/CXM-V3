@@ -121,10 +121,58 @@ export function ChatView({ onClose, initialFile }: ChatViewProps) {
     ))
   }
 
-  const handleSuggestAsContext = (msg: Message) => {
-    if (!msg.suggestedChange || msg.attachedFiles.length === 0) return
-    toast.success(`Suggestion added to ${msg.attachedFiles[0]}`, {
-      description: msg.suggestedChange.summary
+  const renderMarkdown = (text: string) => {
+    // Parse simple markdown: **bold**, *italic*, `code`
+    const parts: (string | { type: "bold" | "italic" | "code"; text: string })[] = []
+    let remaining = text
+    let i = 0
+
+    while (i < remaining.length) {
+      // Match **bold**
+      const boldMatch = remaining.slice(i).match(/^\*\*(.+?)\*\*/)
+      if (boldMatch) {
+        parts.push({ type: "bold", text: boldMatch[1] })
+        i += boldMatch[0].length
+        continue
+      }
+
+      // Match *italic*
+      const italicMatch = remaining.slice(i).match(/^\*(.+?)\*/)
+      if (italicMatch) {
+        parts.push({ type: "italic", text: italicMatch[1] })
+        i += italicMatch[0].length
+        continue
+      }
+
+      // Match `code`
+      const codeMatch = remaining.slice(i).match(/^`(.+?)`/)
+      if (codeMatch) {
+        parts.push({ type: "code", text: codeMatch[1] })
+        i += codeMatch[0].length
+        continue
+      }
+
+      // Regular text until next markdown
+      const nextMarkdown = remaining.slice(i).search(/(\*\*|\*|`)/)
+      if (nextMarkdown === -1) {
+        parts.push(remaining.slice(i))
+        break
+      } else {
+        parts.push(remaining.slice(i, i + nextMarkdown))
+        i += nextMarkdown
+      }
+    }
+
+    return parts.map((part, idx) => {
+      if (typeof part === "string") return <span key={idx}>{part}</span>
+      if (part.type === "bold") return <strong key={idx}>{part.text}</strong>
+      if (part.type === "italic") return <em key={idx}>{part.text}</em>
+      if (part.type === "code")
+        return (
+          <code key={idx} className="bg-muted px-1 rounded text-xs font-mono">
+            {part.text}
+          </code>
+        )
     })
   }
 
@@ -205,16 +253,16 @@ export function ChatView({ onClose, initialFile }: ChatViewProps) {
                       {msg.suggestedChange.before && (
                         <div className="space-y-1">
                           <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Before</p>
-                          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded px-3 py-2 text-sm font-mono text-red-800 dark:text-red-200">
-                            {msg.suggestedChange.before}
+                          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded px-3 py-2 text-sm text-red-800 dark:text-red-200">
+                            {renderMarkdown(msg.suggestedChange.before)}
                           </div>
                         </div>
                       )}
 
                       <div className="space-y-1">
                         <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">After</p>
-                        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded px-3 py-2 text-sm font-mono text-emerald-800 dark:text-emerald-200 whitespace-pre-wrap">
-                          {msg.suggestedChange.after}
+                        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+                          {renderMarkdown(msg.suggestedChange.after)}
                         </div>
                       </div>
 
