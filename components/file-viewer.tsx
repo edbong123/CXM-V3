@@ -91,7 +91,7 @@ export function FileViewer() {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
-        <span className="text-sm text-muted-foreground">Loading {selectedFile.name}...</span>
+        <span className="text-sm text-muted-foreground">Loading {selectedFile.name.replace(/\.md$/, "")}...</span>
       </div>
     )
   }
@@ -151,7 +151,7 @@ export function FileViewer() {
 
           {/* File name */}
           <span className="text-xs font-mono text-muted-foreground hidden md:block">
-            {selectedFile.name}
+            {selectedFile.name.replace(/\.md$/, "")}
           </span>
         </div>
 
@@ -221,7 +221,7 @@ export function FileViewer() {
             <DialogTitle>Commit Changes</DialogTitle>
             <DialogDescription>
               Enter a commit message to save changes to{" "}
-              <span className="font-mono text-foreground">{selectedFile.name}</span>.
+              <span className="font-mono text-foreground">{selectedFile.name.replace(/\.md$/, "")}</span>.
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-3 pt-1">

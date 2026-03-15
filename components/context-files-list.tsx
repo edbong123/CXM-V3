@@ -114,7 +114,7 @@ export function ContextFilesList() {
               >
                 <div className="flex items-center gap-2 min-w-0">
                   <FileText className={cn("h-3.5 w-3.5 shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
-                  <span className="text-sm truncate">{file.name}</span>
+                  <span className="text-sm truncate">{file.name.replace(/\.md$/, "")}</span>
                 </div>
                 {suggestions.length > 0 && (
                   <Badge
