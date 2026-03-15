@@ -508,93 +508,93 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
             <div className="max-w-2xl mx-auto">
               <div className="relative rounded-xl border bg-card shadow-sm">
                 <textarea
-              ref={textareaRef}
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="How can I help you today?"
-              className="w-full resize-none bg-transparent px-4 pt-4 pb-14 text-base placeholder:text-muted-foreground/60 focus:outline-none min-h-[100px]"
-              rows={2}
-            />
+                  ref={textareaRef}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="How can I help you today?"
+                  className="w-full resize-none bg-transparent px-4 pt-4 pb-14 text-base placeholder:text-muted-foreground/60 focus:outline-none min-h-[100px]"
+                  rows={2}
+                />
 
-            {/* Bottom bar with + button, chips, and send */}
-            <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2.5 border-t bg-card/80 rounded-b-xl">
-              <div className="flex items-center gap-2 flex-wrap">
-                {/* Add file button */}
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                    onClick={() => setShowFilePicker(!showFilePicker)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
+                {/* Bottom bar with + button, chips, and send */}
+                <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2.5 border-t bg-card/80 rounded-b-xl">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {/* Add file button */}
+                    <div className="relative">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowFilePicker(!showFilePicker)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
 
-                  {/* File picker dropdown */}
-                  {showFilePicker && (
-                    <div className="absolute bottom-full left-0 mb-2 w-56 bg-popover border rounded-lg shadow-lg overflow-hidden z-50">
-                      <div className="max-h-60 overflow-y-auto">
-                        {sortedFiles.length === 0 ? (
-                          <p className="px-3 py-4 text-sm text-muted-foreground text-center">
-                            No context files available
-                          </p>
-                        ) : (
-                          sortedFiles.map(file => {
-                            const displayName = file.name.replace(/\.md$/, "")
-                            const isSelected = selectedFiles.includes(displayName)
-                            return (
-                              <button
-                                key={file.path}
-                                onClick={() => addFile(displayName)}
-                                disabled={isSelected}
-                                className={cn(
-                                  "w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left transition-colors",
-                                  isSelected
-                                    ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                    : "hover:bg-accent hover:text-accent-foreground"
-                                )}
-                              >
-                                <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                                <span className="truncate">{displayName}</span>
-                              </button>
-                            )
-                          })
-                        )}
-                      </div>
+                      {/* File picker dropdown */}
+                      {showFilePicker && (
+                        <div className="absolute bottom-full left-0 mb-2 w-56 bg-popover border rounded-lg shadow-lg overflow-hidden z-50">
+                          <div className="max-h-60 overflow-y-auto">
+                            {sortedFiles.length === 0 ? (
+                              <p className="px-3 py-4 text-sm text-muted-foreground text-center">
+                                No context files available
+                              </p>
+                            ) : (
+                              sortedFiles.map(file => {
+                                const displayName = file.name.replace(/\.md$/, "")
+                                const isSelected = selectedFiles.includes(displayName)
+                                return (
+                                  <button
+                                    key={file.path}
+                                    onClick={() => addFile(displayName)}
+                                    disabled={isSelected}
+                                    className={cn(
+                                      "w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left transition-colors",
+                                      isSelected
+                                        ? "bg-muted text-muted-foreground cursor-not-allowed"
+                                        : "hover:bg-accent hover:text-accent-foreground"
+                                    )}
+                                  >
+                                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <span className="truncate">{displayName}</span>
+                                  </button>
+                                )
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Selected file chips */}
-                {selectedFiles.map(fileName => (
-                  <Badge
-                    key={fileName}
-                    variant="secondary"
-                    className="gap-1 pr-1 bg-primary/10 text-primary border-primary/20"
+                    {/* Selected file chips */}
+                    {selectedFiles.map(fileName => (
+                      <Badge
+                        key={fileName}
+                        variant="secondary"
+                        className="gap-1 pr-1 bg-primary/10 text-primary border-primary/20"
+                      >
+                        <FileText className="h-3 w-3" />
+                        {fileName}
+                        <button
+                          onClick={() => removeFile(fileName)}
+                          className="ml-0.5 h-4 w-4 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+
+                  {/* Send button */}
+                  <Button
+                    size="icon"
+                    className="h-8 w-8 rounded-lg"
+                    onClick={handleSend}
+                    disabled={!message.trim() || isTyping}
                   >
-                    <FileText className="h-3 w-3" />
-                    {fileName}
-                    <button
-                      onClick={() => removeFile(fileName)}
-                      className="ml-0.5 h-4 w-4 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-
-              {/* Send button */}
-              <Button
-                size="icon"
-                className="h-8 w-8 rounded-lg"
-                onClick={handleSend}
-                disabled={!message.trim() || isTyping}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
-            </div>
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
