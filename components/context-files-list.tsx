@@ -56,7 +56,7 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
       {/* New Chat button */}
       <div className="px-3 pt-4 pb-3">
         <Button
-          variant="outline"
+          variant="ghost"
           className="w-full justify-start gap-2 h-9 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground font-normal"
           onClick={onNewChat}
         >
