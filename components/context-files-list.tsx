@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Plus, Loader2, List, RefreshCw } from "lucide-react"
+import { FileText, Plus, Loader2, List, RefreshCw, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -25,6 +25,10 @@ export function ContextFilesList() {
   const [createOpen, setCreateOpen] = useState(false)
   const [newFileName, setNewFileName] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+  const [chatOpen, setChatOpen] = useState(false)
+  const [chatMessage, setChatMessage] = useState("")
+  const [selectedChatFile, setSelectedChatFile] = useState<string | null>(null)
+  const [showFileSelector, setShowFileSelector] = useState(false)
 
   const handleCreate = async () => {
     const name = newFileName.trim().replace(/[^a-zA-Z0-9._-]/g, "-")
@@ -56,7 +60,20 @@ export function ContextFilesList() {
   return (
     <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
 
-      {/* Section label + actions */}
+      {/* New Chat button */}
+      <div className="px-3 pt-4 pb-3">
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2 h-9 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground font-normal"
+          onClick={() => setChatOpen(true)}
+        >
+          <MessageCircle className="h-3.5 w-3.5" />
+          New Chat
+        </Button>
+      </div>
+
+      {/* Divider */}
+      <div className="h-px bg-border mx-2 mb-2" />
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
           Context Files
@@ -108,7 +125,17 @@ export function ContextFilesList() {
               const isSelected = selectedFile?.path === file.path
               const displayName = file.name.replace(/\.md$/, "")
 
-              return (
+  const handleSendChat = () => {
+    if (!chatMessage.trim()) return
+    // TODO: Integrate with AI chat API
+    // For now, just show a toast
+    toast.success(`Chat sent${selectedChatFile ? ` with ${selectedChatFile}` : ""}`)
+    setChatMessage("")
+    setSelectedChatFile(null)
+    setChatOpen(false)
+  }
+
+  return (
                 <button
                   key={file.path}
                   onClick={() => selectFile(file)}
@@ -154,6 +181,91 @@ export function ContextFilesList() {
           </div>
         )}
       </div>
+
+      {/* Chat dialog */}
+      <Dialog open={chatOpen} onOpenChange={setChatOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>New Chat</DialogTitle>
+            <DialogDescription>
+              {selectedChatFile ? `Chatting with ${selectedChatFile}` : "Ask a question or request assistance"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 pt-1">
+            {/* File selector */}
+            {!selectedChatFile ? (
+              <div className="flex flex-col gap-1.5">
+                <Label>Context File (optional)</Label>
+                <Button
+                  variant="outline"
+                  className="justify-start gap-2 h-9 text-sidebar-foreground/70 hover:text-sidebar-foreground"
+                  onClick={() => setShowFileSelector(!showFileSelector)}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  Select file
+                </Button>
+                {showFileSelector && (
+                  <div className="max-h-40 overflow-y-auto border rounded-md">
+                    {sortedFiles.map(file => (
+                      <button
+                        key={file.path}
+                        onClick={() => {
+                          setSelectedChatFile(file.name.replace(/\.md$/, ""))
+                          setShowFileSelector(false)
+                        }}
+                        className="w-full text-left px-3 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors border-b last:border-b-0"
+                      >
+                        {file.name.replace(/\.md$/, "")}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary" className="flex-1">
+                  {selectedChatFile}
+                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedChatFile(null)}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <FileText className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Message input */}
+            <div className="flex flex-col gap-1.5">
+              <Label>Message</Label>
+              <textarea
+                placeholder="Type your message..."
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && e.ctrlKey) {
+                    handleSendChat()
+                  }
+                }}
+                className="flex-1 w-full px-3 py-2 text-sm border rounded-md bg-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
+                rows={4}
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setChatOpen(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleSendChat} disabled={!chatMessage.trim()}>
+                Send
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Create file dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
