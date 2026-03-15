@@ -123,7 +123,7 @@ export function SimpleWysiwyg({ value, onChange, placeholder, className }: Simpl
     editorProps: {
       attributes: {
         class: cn(
-          "flex-1 min-h-[300px] p-4 text-sm leading-relaxed outline-none overflow-y-auto",
+          "flex-1 w-full text-sm leading-relaxed outline-none",
           "prose prose-sm max-w-none",
           "[&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2",
           "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-1.5",
@@ -187,8 +187,10 @@ export function SimpleWysiwyg({ value, onChange, placeholder, className }: Simpl
         </ToolbarButton>
       </div>
 
-      {/* Tiptap Editor */}
-      <EditorContent editor={editor} className="flex-1" />
+      {/* Tiptap Editor - with proper overflow handling */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <EditorContent editor={editor} />
+      </div>
     </div>
   )
 }
