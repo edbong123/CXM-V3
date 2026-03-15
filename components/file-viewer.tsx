@@ -177,7 +177,8 @@ export function FileViewer({ onOpenChat }: { onOpenChat?: (file: string, mode?: 
   }
 
   const mockSuggestions = selectedFile ? getMockSuggestionsForFile(selectedFile.name) : []
-  const contextSuggestions = selectedFile ? getContextSuggestions(selectedFile.name) : []
+  // Only count pending suggestions from context (not rejected/later)
+  const contextSuggestions = selectedFile ? getContextSuggestions(selectedFile.name, ["pending"]) : []
   const suggestions = [...mockSuggestions, ...contextSuggestions]
 
   if (!selectedFile) {

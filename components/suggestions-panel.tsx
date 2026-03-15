@@ -56,14 +56,18 @@ const TYPE_CONFIG: Record<Suggestion["type"] | "mock", { label: string; icon: Re
 
 export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcessing, onOpenChat }: SuggestionsPanelProps) {
   const { selectedFile, fileContent } = useGitHub()
-  const { getSuggestionsForFile } = useSuggestions()
+  const { getSuggestionsForFile, updateSuggestionStatus } = useSuggestions()
 
   // Get mock suggestions from the library
   const fileToCheck = selectedFile ? selectedFile.name.replace(/\.md$/, "") : ""
   const mockSuggestions = fileToCheck ? getMockSuggestionsForFile(fileToCheck) : []
   
-  // Get user-added suggestions from context (convert to compatible format)
-  const userSuggestions = fileToCheck ? getSuggestionsForFile(fileToCheck).map(s => ({
+  // Local state for mock suggestion statuses (since they're not in context)
+  const [mockStatuses, setMockStatuses] = useState<Record<string, SuggestionStatus>>({})
+  
+  // Get user-added suggestions from context (pending ones, and later if showing deferred)
+  const [showDeferred, setShowDeferred] = useState(false)
+  const pendingUserSuggestions = fileToCheck ? getSuggestionsForFile(fileToCheck, ["pending"]).map(s => ({
     id: s.id,
     fileId: fileToCheck,
     type: "mock" as const,
@@ -71,35 +75,69 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
     detail: s.summary,
     before: s.before,
     after: s.after,
+    status: s.status,
   })) : []
   
-  const allSuggestions = [...mockSuggestions, ...userSuggestions]
+  const deferredUserSuggestions = fileToCheck ? getSuggestionsForFile(fileToCheck, ["later"]).map(s => ({
+    id: s.id,
+    fileId: fileToCheck,
+    type: "mock" as const,
+    summary: s.summary,
+    detail: s.summary,
+    before: s.before,
+    after: s.after,
+    status: s.status,
+  })) : []
 
-  const [statuses, setStatuses] = useState<Record<string, SuggestionStatus>>({})
+  const acceptedUserSuggestions = fileToCheck ? getSuggestionsForFile(fileToCheck, ["accepted"]).map(s => ({
+    id: s.id,
+    fileId: fileToCheck,
+    type: "mock" as const,
+    summary: s.summary,
+    detail: s.summary,
+    before: s.before,
+    after: s.after,
+    status: s.status,
+  })) : []
+  
+  // Combine mock and user suggestions
+  const visibleMockSuggestions = mockSuggestions.filter(s => {
+    const status = mockStatuses[s.id]
+    if (!status) return true
+    if (status === "later" && showDeferred) return true
+    return false
+  })
+  
+  const visibleUserSuggestions = showDeferred 
+    ? [...pendingUserSuggestions, ...deferredUserSuggestions]
+    : pendingUserSuggestions
+    
+  const allSuggestions = [...visibleMockSuggestions, ...visibleUserSuggestions]
+
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
-  const [showDeferred, setShowDeferred] = useState(false)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analyzeProgress, setAnalyzeProgress] = useState(0)
   const [analyzeStep, setAnalyzeStep] = useState("")
 
   const setStatus = useCallback((id: string, status: SuggestionStatus) => {
-    setStatuses((prev) => ({ ...prev, [id]: status }))
-  }, [])
+    // Check if this is a context suggestion (starts with 'suggestion-') or a mock
+    if (id.startsWith("suggestion-")) {
+      updateSuggestionStatus(id, status)
+    } else {
+      setMockStatuses((prev) => ({ ...prev, [id]: status }))
+    }
+  }, [updateSuggestionStatus])
 
   const toggleExpand = useCallback((id: string) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }))
   }, [])
 
-  // Filter visible suggestions
-  const visibleSuggestions = allSuggestions.filter((s) => {
-    const status = statuses[s.id]
-    if (!status) return true
-    if (status === "later" && showDeferred) return true
-    return false
-  })
-
-  const acceptedIds = allSuggestions.filter((s) => statuses[s.id] === "accepted").map((s) => s.id)
-  const deferredCount = allSuggestions.filter((s) => statuses[s.id] === "later").length
+  // Calculate counts
+  const acceptedMockIds = mockSuggestions.filter(s => mockStatuses[s.id] === "accepted").map(s => s.id)
+  const acceptedIds = [...acceptedMockIds, ...acceptedUserSuggestions.map(s => s.id)]
+  
+  const deferredMockCount = mockSuggestions.filter(s => mockStatuses[s.id] === "later").length
+  const deferredCount = deferredMockCount + deferredUserSuggestions.length
 
   const handleProcessSuggestions = async () => {
     onProcessingChange(true)
@@ -107,11 +145,15 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
     // Show processing alert for 3 seconds
     await new Promise((r) => setTimeout(r, 3000))
 
-    const accepted = allSuggestions.filter((s) => statuses[s.id] === "accepted")
+    // Get accepted mock suggestions
+    const acceptedMock = mockSuggestions.filter(s => mockStatuses[s.id] === "accepted")
+    // Combine with accepted user suggestions
+    const allAccepted = [...acceptedMock, ...acceptedUserSuggestions]
+    
     let newContent = fileContent
 
     // Apply accepted suggestions
-    for (const s of accepted) {
+    for (const s of allAccepted) {
       if (s.before && newContent.includes(s.before)) {
         newContent = newContent.replace(s.before, s.after)
       } else if (!s.before) {
@@ -121,7 +163,7 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
     }
 
     onProcessingChange(false)
-    onIncorporated(newContent, accepted.length)
+    onIncorporated(newContent, allAccepted.length)
   }
 
   const handleSuggestChanges = () => {

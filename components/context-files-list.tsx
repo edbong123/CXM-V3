@@ -36,7 +36,8 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
 
   const getSuggestionCount = (fileName: string) => {
     const name = fileName.replace(/\.md$/, "")
-    return getMockSuggestionsForFile(name).length + getContextSuggestions(name).length
+    // Only count pending suggestions (not rejected/later)
+    return getMockSuggestionsForFile(name).length + getContextSuggestions(name, ["pending"]).length
   }
 
   const [createOpen, setCreateOpen] = useState(false)
