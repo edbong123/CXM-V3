@@ -282,7 +282,7 @@ export function FileViewer() {
           <div className="flex flex-col items-center gap-3">
             <div className="h-12 w-12 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
             <div className="text-center">
-              <p className="font-medium text-sm">Incorporating Changes</p>
+              <p className="font-medium text-sm">Generating new version of the document based on the accepted suggestions:</p>
               <p className="text-xs text-muted-foreground mt-1">Applying accepted suggestions to file...</p>
             </div>
           </div>
