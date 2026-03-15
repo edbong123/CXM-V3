@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react"
 import type { ContextFile } from "@/lib/github-client"
-import { fetchContextFiles, fetchFileContent, fetchFileSha, commitFile } from "@/lib/github-client"
+import { fetchContextFiles, fetchFileContent, fetchFileSha, commitFile, fetchOrCreateLLMTxt } from "@/lib/github-client"
 
 interface GitHubUser {
   login: string
@@ -28,6 +28,7 @@ interface GitHubContextType {
 
   // Files
   files: ContextFile[]
+  llmFile: ContextFile | null
   isLoadingFiles: boolean
   fetchFiles: () => Promise<void>
   selectedFile: ContextFile | null
@@ -61,6 +62,7 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
   const [repoConnected, setRepoConnected] = useState(false)
   const [isConnectingRepo, setIsConnectingRepo] = useState(false)
   const [files, setFiles] = useState<ContextFile[]>([])
+  const [llmFile, setLlmFile] = useState<ContextFile | null>(null)
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
   const [selectedFile, setSelectedFile] = useState<ContextFile | null>(null)
   const [fileContent, setFileContent] = useState("")
@@ -173,8 +175,12 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     setIsLoadingFiles(true)
     setError(null)
     try {
-      const fetched = await fetchContextFiles(token, repo)
+      const [fetched, llm] = await Promise.all([
+        fetchContextFiles(token, repo),
+        fetchOrCreateLLMTxt(token, repo)
+      ])
       setFiles(fetched)
+      setLlmFile(llm)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to fetch files.")
     } finally {
@@ -248,7 +254,7 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     <GitHubContext.Provider value={{
       token, setToken, user, isVerifying, verifyToken, disconnect,
       repo, setRepo, isConnectingRepo, connectRepo, repoConnected,
-      files, isLoadingFiles, fetchFiles, selectedFile, selectFile, forceSelectFile, fileContent, isLoadingContent,
+      files, llmFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, forceSelectFile, fileContent, isLoadingContent,
       commitChanges, isCommitting,
       isReviewMode, setIsReviewMode, pendingFileSelect, setPendingFileSelect,
       error, clearError,

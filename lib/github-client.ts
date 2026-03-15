@@ -127,6 +127,35 @@ export interface CommitInfo {
   url: string
 }
 
+export async function fetchOrCreateLLMTxt(token: string, repo: string): Promise<ContextFile> {
+  try {
+    const res = await fetch(`${BASE}/repos/${repo}/contents/LLM.txt`, {
+      headers: headers(token),
+    })
+    
+    if (res.status === 404) {
+      // File doesn't exist, create it
+      const content = "# LLM Context\n\nThis file serves as the main context for AI analysis."
+      await createFile(token, repo, "LLM.txt", content, "Initial LLM.txt creation")
+      return { name: "LLM.txt", path: "LLM.txt", sha: "" }
+    }
+    
+    if (!res.ok) throw new Error(`Failed to fetch LLM.txt: ${res.statusText}`)
+    
+    const data: { name: string; path: string; sha: string } = await res.json()
+    return { name: data.name, path: data.path, sha: data.sha }
+  } catch (e) {
+    // If any error, try to create the file
+    try {
+      const content = "# LLM Context\n\nThis file serves as the main context for AI analysis."
+      await createFile(token, repo, "LLM.txt", content, "Initial LLM.txt creation")
+      return { name: "LLM.txt", path: "LLM.txt", sha: "" }
+    } catch {
+      throw new Error("Failed to fetch or create LLM.txt")
+    }
+  }
+}
+
 export async function fetchCommitHistory(
   token: string,
   repo: string,

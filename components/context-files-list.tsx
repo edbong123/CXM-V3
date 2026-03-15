@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Plus, Loader2, RefreshCw, MessageCircle } from "lucide-react"
+import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -23,7 +23,7 @@ interface ContextFilesListProps {
 }
 
 export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListProps) {
-  const { files, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, repo } = useGitHub()
+  const { files, llmFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, repo } = useGitHub()
 
   const [createOpen, setCreateOpen] = useState(false)
   const [newFileName, setNewFileName] = useState("")
@@ -112,6 +112,33 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
           </div>
         ) : (
           <div className="flex flex-col gap-0.5 px-2 pb-4">
+            {/* LLM.txt - always at top */}
+            {llmFile && (
+              <button
+                onClick={() => {
+                  selectFile(llmFile)
+                  onFileSelect?.()
+                }}
+                className={cn(
+                  "group w-full flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors",
+                  selectedFile?.path === llmFile.path
+                    ? "bg-accent text-accent-foreground"
+                    : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
+                )}
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <ListTodo className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    selectedFile?.path === llmFile.path ? "text-primary" : "text-muted-foreground/60"
+                  )} />
+                  <span className="text-sm truncate font-medium">
+                    LLM.txt
+                  </span>
+                </div>
+              </button>
+            )}
+            
+            {/* Other context files */}
             {sortedFiles.map((file) => {
               const isSelected = selectedFile?.path === file.path
               const displayName = file.name.replace(/\.md$/, "")
