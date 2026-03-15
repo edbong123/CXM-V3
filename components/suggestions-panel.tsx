@@ -141,29 +141,57 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
 
   const handleProcessSuggestions = async () => {
     onProcessingChange(true)
-    
-    // Show processing alert for 3 seconds
-    await new Promise((r) => setTimeout(r, 3000))
 
     // Get accepted mock suggestions
     const acceptedMock = mockSuggestions.filter(s => mockStatuses[s.id] === "accepted")
     // Combine with accepted user suggestions
     const allAccepted = [...acceptedMock, ...acceptedUserSuggestions]
     
-    let newContent = fileContent
-
-    // Apply accepted suggestions
-    for (const s of allAccepted) {
-      if (s.before && newContent.includes(s.before)) {
-        newContent = newContent.replace(s.before, s.after)
-      } else if (!s.before) {
-        // Addition: append to end
-        newContent = newContent.trimEnd() + "\n\n" + s.after + "\n"
-      }
+    if (allAccepted.length === 0) {
+      onProcessingChange(false)
+      return
     }
 
-    onProcessingChange(false)
-    onIncorporated(newContent, allAccepted.length)
+    try {
+      // Call the LLM API to process suggestions
+      const response = await fetch("/api/process-suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          documentContent: fileContent,
+          documentName: selectedFile?.name || "Document",
+          acceptedSuggestions: allAccepted.map(s => ({
+            id: s.id,
+            summary: s.summary,
+            before: s.before,
+            after: s.after,
+          })),
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const data = await response.json()
+      const newContent = data.newContent || fileContent
+
+      onProcessingChange(false)
+      onIncorporated(newContent, allAccepted.length)
+    } catch (error) {
+      console.error("[v0] Failed to process suggestions:", error)
+      onProcessingChange(false)
+      // Fallback: apply changes manually
+      let newContent = fileContent
+      for (const s of allAccepted) {
+        if (s.before && newContent.includes(s.before)) {
+          newContent = newContent.replace(s.before, s.after)
+        } else if (!s.before) {
+          newContent = newContent.trimEnd() + "\n\n" + s.after + "\n"
+        }
+      }
+      onIncorporated(newContent, allAccepted.length)
+    }
   }
 
   const handleSuggestChanges = () => {
