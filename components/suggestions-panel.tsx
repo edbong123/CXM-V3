@@ -215,26 +215,15 @@ function SuggestionCard({
   onReject: () => void
   onDefer: () => void
 }) {
-  const typeConfig = TYPE_CONFIG[suggestion.type]
-  const TypeIcon = typeConfig.icon
-
   return (
     <div className="flex flex-col border-b last:border-b-0">
       {/* Always-visible row */}
       <div className="flex items-start gap-3 px-4 pt-3 pb-2">
-        {/* Type indicator */}
-        <div className={cn(
-          "shrink-0 h-6 w-6 rounded flex items-center justify-center mt-0.5",
-          typeConfig.className
-        )}>
-          <TypeIcon className="h-3.5 w-3.5" />
-        </div>
-
         {/* Summary + type badge + expand toggle */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <Badge variant="outline" className={cn("text-xs font-medium shrink-0", typeConfig.className)}>
-              {typeConfig.label}
+            <Badge variant="outline" className="text-xs font-medium shrink-0 bg-muted border-muted text-muted-foreground">
+              {TYPE_CONFIG[suggestion.type].label}
             </Badge>
           </div>
           <p className="text-sm leading-snug">{suggestion.summary}</p>
