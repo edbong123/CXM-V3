@@ -114,28 +114,31 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
           <div className="flex flex-col gap-0.5 px-2 pb-4">
             {/* LLM.txt - always at top */}
             {llmFile && (
-              <button
-                onClick={() => {
-                  selectFile(llmFile)
-                  onFileSelect?.()
-                }}
-                className={cn(
-                  "group w-full flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors",
-                  selectedFile?.path === llmFile.path
-                    ? "bg-accent text-accent-foreground"
-                    : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
-                )}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <ListTodo className={cn(
-                    "h-3.5 w-3.5 shrink-0",
-                    selectedFile?.path === llmFile.path ? "text-primary" : "text-muted-foreground/60"
-                  )} />
-                  <span className="text-sm truncate font-medium">
-                    LLM.txt
-                  </span>
-                </div>
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    selectFile(llmFile)
+                    onFileSelect?.()
+                  }}
+                  className={cn(
+                    "group w-full flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors",
+                    selectedFile?.path === llmFile.path
+                      ? "bg-accent text-accent-foreground"
+                      : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <ListTodo className={cn(
+                      "h-3.5 w-3.5 shrink-0",
+                      selectedFile?.path === llmFile.path ? "text-primary" : "text-muted-foreground/60"
+                    )} />
+                    <span className="text-sm truncate font-medium">
+                      LLM
+                    </span>
+                  </div>
+                </button>
+                <div className="h-px bg-border mx-2 my-2" />
+              </>
             )}
             
             {/* Other context files */}
