@@ -104,3 +104,51 @@ export async function createFile(
   const data = await res.json()
   return { sha: data.content.sha }
 }
+
+export interface CommitInfo {
+  sha: string
+  message: string
+  date: string
+  author: {
+    name: string
+    email: string
+    avatar_url?: string
+    login?: string
+  }
+  url: string
+}
+
+export async function fetchCommitHistory(
+  token: string,
+  repo: string,
+  path: string
+): Promise<CommitInfo[]> {
+  const res = await fetch(
+    `${BASE}/repos/${repo}/commits?path=${encodeURIComponent(path)}&per_page=50`,
+    { headers: headers(token) }
+  )
+  if (!res.ok) throw new Error(`Failed to fetch commit history: ${res.statusText}`)
+  
+  const data: Array<{
+    sha: string
+    commit: {
+      message: string
+      author: { name: string; email: string; date: string }
+    }
+    author?: { login: string; avatar_url: string } | null
+    html_url: string
+  }> = await res.json()
+
+  return data.map((c) => ({
+    sha: c.sha,
+    message: c.commit.message,
+    date: c.commit.author.date,
+    author: {
+      name: c.commit.author.name,
+      email: c.commit.author.email,
+      avatar_url: c.author?.avatar_url,
+      login: c.author?.login,
+    },
+    url: c.html_url,
+  }))
+}

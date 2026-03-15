@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Loader2, Save, X, Clock, FileText } from "lucide-react"
+import { Loader2, Save, X, Clock, FileText, ExternalLink, GitCommit } from "lucide-react"
+import { fetchCommitHistory, type CommitInfo } from "@/lib/github-client"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import {
@@ -24,7 +25,7 @@ import { cn } from "@/lib/utils"
 type Tab = "view" | "edit" | "suggestions" | "history"
 
 export function FileViewer() {
-  const { selectedFile, fileContent, isLoadingContent, commitChanges, isCommitting } = useGitHub()
+  const { selectedFile, fileContent, isLoadingContent, commitChanges, isCommitting, token, repo } = useGitHub()
 
   const [activeTab, setActiveTab] = useState<Tab>("view")
   const [editContent, setEditContent] = useState("")
@@ -33,11 +34,34 @@ export function FileViewer() {
   const [commitMessage, setCommitMessage] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
 
+  // History state
+  const [commits, setCommits] = useState<CommitInfo[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [historyError, setHistoryError] = useState<string | null>(null)
+
   // Sync edit content when file loads
   useEffect(() => {
     setEditContent(fileContent)
     setIsDirty(false)
   }, [fileContent])
+
+  // Fetch commit history when switching to history tab or when file changes
+  useEffect(() => {
+    if (activeTab !== "history" || !selectedFile || !token || !repo) return
+    
+    setIsLoadingHistory(true)
+    setHistoryError(null)
+    
+    fetchCommitHistory(token, repo, selectedFile.path)
+      .then((data) => {
+        setCommits(data)
+        setIsLoadingHistory(false)
+      })
+      .catch((err) => {
+        setHistoryError(err.message)
+        setIsLoadingHistory(false)
+      })
+  }, [activeTab, selectedFile, token, repo])
 
   const handleEditChange = (val: string) => {
     setEditContent(val)
@@ -138,9 +162,13 @@ export function FileViewer() {
                     </Badge>
                   </span>
                 ) : tab === "history" ? (
-                  <span className="flex items-center gap-1.5 text-muted-foreground/70">
+                  <span className="flex items-center gap-1.5">
                     History
-                    <span className="text-xs opacity-60">(soon)</span>
+                    {commits.length > 0 && (
+                      <Badge variant="secondary" className="h-4.5 px-1.5 text-xs">
+                        {commits.length}
+                      </Badge>
+                    )}
                   </span>
                 ) : (
                   <span className="capitalize">{tab}</span>
@@ -202,15 +230,83 @@ export function FileViewer() {
 
         {/* History Tab */}
         <TabsContent value="history" className="flex-1 overflow-y-auto m-0">
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
-            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
-              <Clock className="h-5 w-5 text-muted-foreground/60" />
+          {isLoadingHistory ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mr-2" />
+              <span className="text-sm text-muted-foreground">Loading commit history...</span>
             </div>
-            <div>
-              <p className="font-medium text-sm">Commit history</p>
-              <p className="text-sm text-muted-foreground mt-1">Coming soon — view and restore previous versions.</p>
+          ) : historyError ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
+              <div className="h-12 w-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-destructive" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Failed to load history</p>
+                <p className="text-sm text-muted-foreground mt-1">{historyError}</p>
+              </div>
             </div>
-          </div>
+          ) : commits.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-8">
+              <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
+                <Clock className="h-5 w-5 text-muted-foreground/60" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">No commit history</p>
+                <p className="text-sm text-muted-foreground mt-1">This file has no commits yet.</p>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4">
+              <div className="space-y-0">
+                {commits.map((commit, idx) => (
+                  <div
+                    key={commit.sha}
+                    className="relative pl-6 pb-6 last:pb-0 group"
+                  >
+                    {/* Timeline line */}
+                    {idx < commits.length - 1 && (
+                      <div className="absolute left-[9px] top-5 bottom-0 w-px bg-border" />
+                    )}
+                    {/* Timeline dot */}
+                    <div className="absolute left-0 top-1 h-[18px] w-[18px] rounded-full border-2 border-border bg-background flex items-center justify-center">
+                      <GitCommit className="h-2.5 w-2.5 text-muted-foreground" />
+                    </div>
+                    {/* Content */}
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-start justify-between gap-4">
+                        <p className="text-sm font-medium leading-tight">
+                          {commit.message.split("\n")[0]}
+                        </p>
+                        <a
+                          href={commit.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+                        >
+                          <code className="font-mono">{commit.sha.slice(0, 7)}</code>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {commit.author.avatar_url && (
+                          <img
+                            src={commit.author.avatar_url}
+                            alt={commit.author.name}
+                            className="h-4 w-4 rounded-full"
+                          />
+                        )}
+                        <span>{commit.author.login || commit.author.name}</span>
+                        <span>·</span>
+                        <time dateTime={commit.date}>
+                          {formatRelativeDate(commit.date)}
+                        </time>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -253,6 +349,24 @@ export function FileViewer() {
       </Dialog>
     </div>
   )
+}
+
+function formatRelativeDate(dateStr: string): string {
+  const date = new Date(dateStr)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffSecs = Math.floor(diffMs / 1000)
+  const diffMins = Math.floor(diffSecs / 60)
+  const diffHours = Math.floor(diffMins / 60)
+  const diffDays = Math.floor(diffHours / 24)
+
+  if (diffSecs < 60) return "just now"
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`
+  return `${Math.floor(diffDays / 365)}y ago`
 }
 
 function MarkdownPreview({ content }: { content: string }) {
