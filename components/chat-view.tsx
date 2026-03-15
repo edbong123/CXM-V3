@@ -387,138 +387,71 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
     <div className="flex flex-col h-full bg-background">
       {/* Messages area or empty state */}
       {hasMessages ? (
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="max-w-2xl mx-auto space-y-6">
-            {messages.map((msg) => (
-              <div key={msg.id} className={cn(
-                "flex",
-                msg.role === "user" ? "justify-end" : "justify-start"
-              )}>
-                <div className={cn(
-                  "max-w-[85%] rounded-2xl px-4 py-3",
-                  msg.role === "user" 
-                    ? "bg-primary text-primary-foreground" 
-                    : "bg-muted"
+        <>
+          <div className="flex-1 overflow-y-auto px-6 py-6">
+            <div className="max-w-2xl mx-auto space-y-6">
+              {messages.map((msg) => (
+                <div key={msg.id} className={cn(
+                  "flex",
+                  msg.role === "user" ? "justify-end" : "justify-start"
                 )}>
-                  {/* Show attached files for user messages */}
-                  {msg.role === "user" && msg.attachedFiles.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mb-2">
-                      {msg.attachedFiles.map(file => (
-                        <Badge key={file} variant="secondary" className="bg-primary-foreground/20 text-primary-foreground text-xs">
-                          <FileText className="h-3 w-3 mr-1" />
-                          {file}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-
-                  {/* Pending: small inline button */}
-                  {msg.role === "assistant" && msg.suggestionState === "pending" && msg.attachedFiles.length > 0 && (
-                    <div className="mt-3">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
-                        onClick={() => handleShowSuggestion(msg.id)}
-                      >
-                        <Sparkles className="h-3 w-3" />
-                        Suggest as context
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Loading: generating suggestion */}
-                  {msg.role === "assistant" && msg.suggestionState === "loading" && (
-                    <div className="mt-4 bg-background rounded-lg border p-4">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                        Generating suggestion...
+                  <div className={cn(
+                    "max-w-[85%] rounded-2xl px-4 py-3",
+                    msg.role === "user" 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-muted"
+                  )}>
+                    {/* Show attached files for user messages */}
+                    {msg.role === "user" && msg.attachedFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 mb-2">
+                        {msg.attachedFiles.map(file => (
+                          <Badge key={file} variant="secondary" className="bg-primary-foreground/20 text-primary-foreground text-xs">
+                            <FileText className="h-3 w-3 mr-1" />
+                            {file}
+                          </Badge>
+                        ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                    
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
 
-                  {/* Shown: full formatted diff card */}
-                  {msg.role === "assistant" && msg.suggestionState === "shown" && msg.suggestedChange && (
-                    <div className="mt-4 bg-background rounded-lg border p-4 space-y-3">
-                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                        Suggested Change
+                    {/* Pending: small inline button */}
+                    {msg.role === "assistant" && msg.suggestionState === "pending" && msg.attachedFiles.length > 0 && (
+                      <div className="mt-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                          onClick={() => handleShowSuggestion(msg.id)}
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Suggest as context
+                        </Button>
                       </div>
+                    )}
 
-                      {msg.suggestedChange.before && (
-                        <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Before</p>
-                          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded px-3 py-2 text-sm text-red-800 dark:text-red-200">
-                            {renderMarkdown(msg.suggestedChange.before)}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">After</p>
-                        <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
-                          {renderMarkdown(msg.suggestedChange.after)}
-                        </div>
-                      </div>
-
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="w-full gap-2 mt-2"
-                        onClick={() => handleSuggestAsContext(msg)}
-                      >
-                        <ArrowRight className="h-3.5 w-3.5" />
-                        Add to Suggestions
-                      </Button>
-                    </div>
-                  )}
-
-                  {/* Added: confirmation that suggestion was added */}
-                  {msg.role === "assistant" && msg.suggestionState === "added" && (
-                    <div className="mt-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg p-3 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
-                      <Sparkles className="h-4 w-4" />
-                      Suggestion added to document
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {/* Typing indicator */}
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-muted rounded-2xl px-4 py-3">
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span className="text-sm">Thinking...</span>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
+                    {/* Loading: generating suggestion */}
+                    {msg.role === "assistant" && msg.suggestionState === "loading" && (
+                      <div className="mt-4 bg-background rounded-lg border p-4">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Generating suggestion...
           </div>
-        </div>
+        </>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-          <div className="w-full max-w-2xl flex flex-col items-center gap-8">
-            {/* Title */}
-            <h1 className="text-3xl font-serif text-foreground/90">
-              Context is Everything
-            </h1>
+        <>
+          <div className="flex-1 flex flex-col items-center justify-center px-6">
+            <div className="w-full max-w-2xl flex flex-col items-center gap-8">
+              {/* Title */}
+              <h1 className="text-3xl font-serif text-foreground/90">
+                Context is Everything
+              </h1>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Input area - always at bottom */}
-      <div className={cn(
-        "px-6 pb-6",
-        hasMessages ? "pt-2" : "pt-0"
-      )}>
-        <div className="max-w-2xl mx-auto">
-          <div className="relative rounded-xl border bg-card shadow-sm">
+          {/* Input area - empty state */}
+          <div className="px-6 pb-6">
+            <div className="max-w-2xl mx-auto">
             {/* Textarea */}
             <textarea
               ref={textareaRef}
@@ -608,9 +541,10 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   )
 }
