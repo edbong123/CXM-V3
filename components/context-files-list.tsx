@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Plus, Loader2, List, RefreshCw, MessageCircle } from "lucide-react"
+import { FileText, Plus, Loader2, RefreshCw, MessageCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,7 +13,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useGitHub } from "@/contexts/github-context"
-import { getSuggestionsForFile } from "@/lib/mock-suggestions"
 import { createFile } from "@/lib/github-client"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -48,14 +47,8 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
     }
   }
 
-  // Sort: README first, then alphabetical
-  const sortedFiles = [...files].sort((a, b) => {
-    const aIsReadme = /^readme/i.test(a.name)
-    const bIsReadme = /^readme/i.test(b.name)
-    if (aIsReadme && !bIsReadme) return -1
-    if (!aIsReadme && bIsReadme) return 1
-    return a.name.localeCompare(b.name)
-  })
+  // Files displayed in order as provided
+  const sortedFiles = files
 
   return (
     <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
@@ -120,8 +113,6 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
         ) : (
           <div className="flex flex-col gap-0.5 px-2 pb-4">
             {sortedFiles.map((file) => {
-              const isReadme = /^readme/i.test(file.name)
-              const suggestions = getSuggestionsForFile(file.name)
               const isSelected = selectedFile?.path === file.path
               const displayName = file.name.replace(/\.md$/, "")
 
@@ -140,34 +131,14 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
                   )}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    {isReadme ? (
-                      <List className={cn(
-                        "h-3.5 w-3.5 shrink-0",
-                        isSelected ? "text-primary" : "text-muted-foreground"
-                      )} />
-                    ) : (
-                      <FileText className={cn(
-                        "h-3.5 w-3.5 shrink-0",
-                        isSelected ? "text-primary" : "text-muted-foreground/60"
-                      )} />
-                    )}
-                    <span className={cn(
-                      "text-sm truncate",
-                      isReadme && "font-medium"
-                    )}>
+                    <FileText className={cn(
+                      "h-3.5 w-3.5 shrink-0",
+                      isSelected ? "text-primary" : "text-muted-foreground/60"
+                    )} />
+                    <span className="text-sm truncate">
                       {displayName}
                     </span>
                   </div>
-                  {suggestions.length > 0 && (
-                    <span className={cn(
-                      "shrink-0 min-w-[18px] h-[18px] rounded-full text-xs flex items-center justify-center font-medium px-1.5",
-                      isSelected
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground"
-                    )}>
-                      {suggestions.length}
-                    </span>
-                  )}
                 </button>
               )
             })}

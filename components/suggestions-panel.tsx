@@ -51,7 +51,8 @@ const TYPE_CONFIG: Record<Suggestion["type"], { label: string; icon: React.Eleme
 export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcessing, onOpenChat }: SuggestionsPanelProps) {
   const { selectedFile, fileContent } = useGitHub()
 
-  const allSuggestions = selectedFile ? getSuggestionsForFile(selectedFile.name) : []
+  // Empty array - no mock suggestions shown
+  const allSuggestions: Suggestion[] = []
 
   const [statuses, setStatuses] = useState<Record<string, SuggestionStatus>>({})
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
