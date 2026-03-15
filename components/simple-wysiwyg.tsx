@@ -4,7 +4,7 @@ import { useEffect, useCallback } from "react"
 import { useEditor, EditorContent } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
 import Placeholder from "@tiptap/extension-placeholder"
-import { Bold, Italic, Heading2 } from "lucide-react"
+import { Bold, Italic, Heading1, Heading2, List, ListOrdered, Minus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SimpleWysiwygProps {
@@ -111,9 +111,9 @@ export function SimpleWysiwyg({ value, onChange, placeholder, className }: Simpl
     immediatelyRender: false,
     extensions: [
       StarterKit.configure({
-        heading: {
-          levels: [1, 2],
-        },
+        heading: { levels: [1, 2] },
+        bulletList: { keepMarks: true },
+        orderedList: { keepMarks: true },
       }),
       Placeholder.configure({
         placeholder: placeholder || "Start writing...",
@@ -147,43 +147,41 @@ export function SimpleWysiwyg({ value, onChange, placeholder, className }: Simpl
     }
   }, [editor, value])
 
-  const toggleBold = useCallback(() => {
-    editor?.chain().focus().toggleBold().run()
-  }, [editor])
-
-  const toggleItalic = useCallback(() => {
-    editor?.chain().focus().toggleItalic().run()
-  }, [editor])
-
-  const toggleHeading = useCallback(() => {
-    editor?.chain().focus().toggleHeading({ level: 2 }).run()
-  }, [editor])
+  const toggleBold = useCallback(() => editor?.chain().focus().toggleBold().run(), [editor])
+  const toggleItalic = useCallback(() => editor?.chain().focus().toggleItalic().run(), [editor])
+  const toggleH1 = useCallback(() => editor?.chain().focus().toggleHeading({ level: 1 }).run(), [editor])
+  const toggleH2 = useCallback(() => editor?.chain().focus().toggleHeading({ level: 2 }).run(), [editor])
+  const toggleBulletList = useCallback(() => editor?.chain().focus().toggleBulletList().run(), [editor])
+  const toggleOrderedList = useCallback(() => editor?.chain().focus().toggleOrderedList().run(), [editor])
+  const insertHR = useCallback(() => editor?.chain().focus().setHorizontalRule().run(), [editor])
 
   return (
     <div className={cn("flex flex-col border rounded-md overflow-hidden bg-background", className)}>
       {/* Toolbar */}
-      <div className="flex items-center gap-0.5 border-b bg-muted/40 px-2 py-1.5">
-        <ToolbarButton 
-          onClick={toggleBold} 
-          title="Bold (Ctrl+B)"
-          active={editor?.isActive("bold")}
-        >
+      <div className="flex items-center gap-0.5 border-b bg-muted/40 px-2 py-1.5 flex-wrap">
+        <ToolbarButton onClick={toggleBold} title="Bold (Ctrl+B)" active={editor?.isActive("bold")}>
           <Bold className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton 
-          onClick={toggleItalic} 
-          title="Italic (Ctrl+I)"
-          active={editor?.isActive("italic")}
-        >
+        <ToolbarButton onClick={toggleItalic} title="Italic (Ctrl+I)" active={editor?.isActive("italic")}>
           <Italic className="h-3.5 w-3.5" />
         </ToolbarButton>
         <div className="w-px h-4 bg-border mx-1" />
-        <ToolbarButton 
-          onClick={toggleHeading} 
-          title="Heading"
-          active={editor?.isActive("heading", { level: 2 })}
-        >
+        <ToolbarButton onClick={toggleH1} title="Heading 1" active={editor?.isActive("heading", { level: 1 })}>
+          <Heading1 className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={toggleH2} title="Heading 2" active={editor?.isActive("heading", { level: 2 })}>
           <Heading2 className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <div className="w-px h-4 bg-border mx-1" />
+        <ToolbarButton onClick={toggleBulletList} title="Bullet List" active={editor?.isActive("bulletList")}>
+          <List className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={toggleOrderedList} title="Numbered List" active={editor?.isActive("orderedList")}>
+          <ListOrdered className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <div className="w-px h-4 bg-border mx-1" />
+        <ToolbarButton onClick={insertHR} title="Divider">
+          <Minus className="h-3.5 w-3.5" />
         </ToolbarButton>
       </div>
 
