@@ -8,16 +8,21 @@ import { useGitHub } from "@/contexts/github-context"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
+interface SuggestedChange {
+  summary: string
+  before?: string
+  after: string
+}
+
 interface Message {
   id: string
   role: "user" | "assistant"
   content: string
   attachedFiles: string[]
-  suggestedChange?: {
-    summary: string
-    before?: string
-    after: string
-  }
+  // pending = has suggestion available but not shown yet
+  // shown = formatted diff card is visible
+  suggestionState?: "pending" | "shown"
+  suggestedChange?: SuggestedChange
 }
 
 interface ChatViewProps {
@@ -102,17 +107,22 @@ export function ChatView({ onClose, initialFile }: ChatViewProps) {
       role: "assistant",
       content: aiResponse.content,
       attachedFiles: sentFiles,
-      suggestedChange: aiResponse.suggestedChange
+      suggestedChange: aiResponse.suggestedChange,
+      suggestionState: aiResponse.suggestedChange ? "pending" : undefined,
     }
 
     setMessages(prev => [...prev, assistantMessage])
     setIsTyping(false)
   }
 
+  const handleShowSuggestion = (msgId: string) => {
+    setMessages(prev => prev.map(m =>
+      m.id === msgId ? { ...m, suggestionState: "shown" } : m
+    ))
+  }
+
   const handleSuggestAsContext = (msg: Message) => {
     if (!msg.suggestedChange || msg.attachedFiles.length === 0) return
-    
-    // In a real app, this would add to the database
     toast.success(`Suggestion added to ${msg.attachedFiles[0]}`, {
       description: msg.suggestedChange.summary
     })
@@ -169,25 +179,40 @@ export function ChatView({ onClose, initialFile }: ChatViewProps) {
                   
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
 
-                  {/* Suggested change card */}
-                  {msg.role === "assistant" && msg.suggestedChange && (
+                  {/* Pending: small inline button */}
+                  {msg.role === "assistant" && msg.suggestionState === "pending" && (
+                    <div className="mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground"
+                        onClick={() => handleShowSuggestion(msg.id)}
+                      >
+                        <Sparkles className="h-3 w-3" />
+                        Suggest as context
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Shown: full formatted diff card */}
+                  {msg.role === "assistant" && msg.suggestionState === "shown" && msg.suggestedChange && (
                     <div className="mt-4 bg-background rounded-lg border p-4 space-y-3">
                       <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                         <Sparkles className="h-4 w-4 text-primary" />
                         Suggested Change
                       </div>
-                      
+
                       {msg.suggestedChange.before && (
                         <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground uppercase tracking-wide">Before</p>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Before</p>
                           <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded px-3 py-2 text-sm font-mono text-red-800 dark:text-red-200">
                             {msg.suggestedChange.before}
                           </div>
                         </div>
                       )}
-                      
+
                       <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground uppercase tracking-wide">After</p>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">After</p>
                         <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded px-3 py-2 text-sm font-mono text-emerald-800 dark:text-emerald-200 whitespace-pre-wrap">
                           {msg.suggestedChange.after}
                         </div>
