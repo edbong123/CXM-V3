@@ -21,8 +21,10 @@ interface Message {
   content: string
   attachedFiles: string[]
   // pending = has suggestion available but not shown yet
+  // loading = generating suggestion from API
   // shown = formatted diff card is visible
-  suggestionState?: "pending" | "shown"
+  // added = suggestion has been added to the database
+  suggestionState?: "pending" | "loading" | "shown" | "added"
   suggestedChange?: SuggestedChange
 }
 
@@ -225,9 +227,76 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
     }
   }
 
-  const handleShowSuggestion = (msgId: string) => {
+  const handleShowSuggestion = async (msgId: string) => {
+    const msg = messages.find(m => m.id === msgId)
+    if (!msg || msg.attachedFiles.length === 0) return
+
+    // Mark as loading
     setMessages(prev => prev.map(m =>
-      m.id === msgId ? { ...m, suggestionState: "shown" } : m
+      m.id === msgId ? { ...m, suggestionState: "loading" } : m
+    ))
+
+    try {
+      // Get the attached file content
+      const fileName = msg.attachedFiles[0]
+      const allFiles = [...files, llmFile].filter(Boolean)
+      const file = allFiles.find(f => f?.name.replace(/\.(md|txt)$/, "") === fileName)
+      
+      let documentContent = ""
+      if (file && token && repo) {
+        documentContent = await fetchFileContent(token, repo, file.path)
+      }
+
+      // Call the suggest API
+      const response = await fetch("/api/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          aiResponse: msg.content,
+          documentContent,
+          documentName: fileName
+        })
+      })
+
+      if (!response.ok) throw new Error("Failed to generate suggestion")
+
+      const suggestion = await response.json()
+
+      // Update the message with the generated suggestion
+      setMessages(prev => prev.map(m =>
+        m.id === msgId ? {
+          ...m,
+          suggestionState: "shown",
+          suggestedChange: {
+            summary: suggestion.summary,
+            before: suggestion.before,
+            after: suggestion.after
+          }
+        } : m
+      ))
+    } catch (error) {
+      console.error("[v0] Failed to generate suggestion:", error)
+      toast.error("Failed to generate suggestion")
+      setMessages(prev => prev.map(m =>
+        m.id === msgId ? { ...m, suggestionState: "pending" } : m
+      ))
+    }
+  }
+
+  const handleSuggestAsContext = (msg: Message) => {
+    if (!msg.suggestedChange || msg.attachedFiles.length === 0) return
+    
+    const fileName = msg.attachedFiles[0]
+    
+    // In a real app, this would add to the database via an API call
+    // For now, show a success toast simulating the DB addition
+    toast.success(`Suggestion added to ${fileName}`, {
+      description: msg.suggestedChange.summary
+    })
+    
+    // Mark the suggestion as added (remove from this message)
+    setMessages(prev => prev.map(m =>
+      m.id === msg.id ? { ...m, suggestionState: "added" as Message["suggestionState"] } : m
     ))
   }
 
@@ -338,7 +407,7 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
                   <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
 
                   {/* Pending: small inline button */}
-                  {msg.role === "assistant" && msg.suggestionState === "pending" && (
+                  {msg.role === "assistant" && msg.suggestionState === "pending" && msg.attachedFiles.length > 0 && (
                     <div className="mt-3">
                       <Button
                         size="sm"
@@ -349,6 +418,16 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
                         <Sparkles className="h-3 w-3" />
                         Suggest as context
                       </Button>
+                    </div>
+                  )}
+
+                  {/* Loading: generating suggestion */}
+                  {msg.role === "assistant" && msg.suggestionState === "loading" && (
+                    <div className="mt-4 bg-background rounded-lg border p-4">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Generating suggestion...
+                      </div>
                     </div>
                   )}
 
@@ -378,13 +457,21 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
 
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="default"
                         className="w-full gap-2 mt-2"
                         onClick={() => handleSuggestAsContext(msg)}
                       >
                         <ArrowRight className="h-3.5 w-3.5" />
-                        Suggest as Context
+                        Add to Suggestions
                       </Button>
+                    </div>
+                  )}
+
+                  {/* Added: confirmation that suggestion was added */}
+                  {msg.role === "assistant" && msg.suggestionState === "added" && (
+                    <div className="mt-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg p-3 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
+                      <Sparkles className="h-4 w-4" />
+                      Suggestion added to document
                     </div>
                   )}
                 </div>
