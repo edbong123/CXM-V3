@@ -15,6 +15,31 @@ function headers(token: string) {
   }
 }
 
+export interface GitHubRepo {
+  full_name: string
+  name: string
+  private: boolean
+  description: string | null
+  updated_at: string
+}
+
+export async function fetchUserRepos(token: string): Promise<GitHubRepo[]> {
+  const results: GitHubRepo[] = []
+  let page = 1
+  while (true) {
+    const res = await fetch(
+      `${BASE}/user/repos?per_page=100&page=${page}&sort=updated&affiliation=owner,collaborator`,
+      { headers: headers(token) }
+    )
+    if (!res.ok) throw new Error(`Failed to fetch repos: ${res.statusText}`)
+    const data: GitHubRepo[] = await res.json()
+    results.push(...data)
+    if (data.length < 100) break
+    page++
+  }
+  return results
+}
+
 export async function fetchContextFiles(token: string, repo: string): Promise<ContextFile[]> {
   const res = await fetch(`${BASE}/repos/${repo}/contents/context`, {
     headers: headers(token),

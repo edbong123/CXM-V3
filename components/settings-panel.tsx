@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Eye, EyeOff, CheckCircle2, AlertCircle, Loader2, Github, LogOut, ExternalLink } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { Eye, EyeOff, CheckCircle2, AlertCircle, Loader2, Github, LogOut, ExternalLink, ChevronDown, Search, Lock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,6 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { useGitHub } from "@/contexts/github-context"
+import { fetchUserRepos, type GitHubRepo } from "@/lib/github-client"
 import { cn } from "@/lib/utils"
 
 interface SettingsPanelProps {
@@ -30,8 +31,41 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
 
   const [showToken, setShowToken] = useState(false)
   const [tokenInput, setTokenInput] = useState(token)
-  const [repoInput, setRepoInput] = useState(repo)
   const [localError, setLocalError] = useState<string | null>(null)
+
+  // Repo picker state
+  const [repos, setRepos] = useState<GitHubRepo[]>([])
+  const [reposLoading, setReposLoading] = useState(false)
+  const [reposError, setReposError] = useState<string | null>(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [search, setSearch] = useState("")
+  const [selectedRepo, setSelectedRepo] = useState(repo)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Load repos whenever the user is authenticated
+  useEffect(() => {
+    if (!user || !token) { setRepos([]); return }
+    setReposLoading(true)
+    setReposError(null)
+    fetchUserRepos(token)
+      .then((r) => { setRepos(r); setReposLoading(false) })
+      .catch((e) => { setReposError(e.message); setReposLoading(false) })
+  }, [user, token])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  const filteredRepos = repos.filter((r) =>
+    r.full_name.toLowerCase().includes(search.toLowerCase())
+  )
 
   const handleVerify = async () => {
     clearError()
@@ -44,7 +78,7 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const handleConnect = async () => {
     clearError()
     setLocalError(null)
-    setRepo(repoInput)
+    setRepo(selectedRepo)
     const ok = await connectRepo()
     if (!ok) setLocalError(error)
   }
@@ -52,7 +86,8 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const handleDisconnect = () => {
     disconnect()
     setTokenInput("")
-    setRepoInput("")
+    setSelectedRepo("")
+    setRepos([])
     setLocalError(null)
     onClose()
   }
@@ -142,17 +177,86 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 )}
               </div>
 
-              <Input
-                placeholder="owner/repository"
-                value={repoInput}
-                onChange={(e) => { setRepoInput(e.target.value); clearError() }}
-                className="font-mono text-sm"
-              />
+              {/* Searchable repo picker */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  type="button"
+                  onClick={() => { setDropdownOpen((o) => !o); setSearch("") }}
+                  disabled={reposLoading}
+                  className={cn(
+                    "w-full flex items-center justify-between gap-2 rounded-md border bg-background px-3 py-2 text-sm transition-colors",
+                    "hover:border-ring focus:outline-none focus:ring-2 focus:ring-ring",
+                    !selectedRepo && "text-muted-foreground"
+                  )}
+                >
+                  <span className={cn("truncate font-mono", selectedRepo ? "text-foreground" : "text-muted-foreground")}>
+                    {reposLoading
+                      ? "Loading repositories..."
+                      : selectedRepo || "Select a repository"}
+                  </span>
+                  {reposLoading
+                    ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                    : <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", dropdownOpen && "rotate-180")} />
+                  }
+                </button>
+
+                {dropdownOpen && !reposLoading && (
+                  <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
+                    {/* Search box */}
+                    <div className="flex items-center gap-2 border-b px-3 py-2">
+                      <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="Search repositories..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+                      />
+                    </div>
+
+                    {/* Repo list */}
+                    <div className="max-h-52 overflow-y-auto py-1">
+                      {reposError && (
+                        <div className="px-3 py-2 text-xs text-destructive">{reposError}</div>
+                      )}
+                      {!reposError && filteredRepos.length === 0 && (
+                        <div className="px-3 py-2 text-xs text-muted-foreground">No repositories found</div>
+                      )}
+                      {filteredRepos.map((r) => (
+                        <button
+                          key={r.full_name}
+                          type="button"
+                          onClick={() => {
+                            setSelectedRepo(r.full_name)
+                            clearError()
+                            setDropdownOpen(false)
+                          }}
+                          className={cn(
+                            "w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left transition-colors hover:bg-accent",
+                            selectedRepo === r.full_name && "bg-accent"
+                          )}
+                        >
+                          <div className="flex flex-col min-w-0">
+                            <span className="font-mono text-sm truncate">{r.full_name}</span>
+                            {r.description && (
+                              <span className="text-xs text-muted-foreground truncate">{r.description}</span>
+                            )}
+                          </div>
+                          {r.private && (
+                            <Lock className="h-3 w-3 shrink-0 text-muted-foreground" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <Button
                 size="sm"
                 onClick={handleConnect}
-                disabled={!repoInput.trim() || isConnectingRepo}
+                disabled={!selectedRepo.trim() || isConnectingRepo}
               >
                 {isConnectingRepo ? (
                   <>
