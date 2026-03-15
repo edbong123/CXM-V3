@@ -109,7 +109,35 @@ export function FileViewer() {
     setReviewContent("")
     setAcceptedCount(0)
     setIsReviewMode(false)
+    setActiveTab("view")
     toast.info("Review discarded. Original file unchanged.")
+  }
+
+  // State for discard confirmation dialog
+  const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
+  const [pendingNavigation, setPendingNavigation] = useState<{ type: "tab" | "file", value?: Tab } | null>(null)
+
+  const handleTabChange = (newTab: Tab) => {
+    if (isReviewMode && newTab !== activeTab) {
+      setPendingNavigation({ type: "tab", value: newTab })
+      setDiscardDialogOpen(true)
+      return
+    }
+    setActiveTab(newTab)
+  }
+
+  const confirmDiscard = () => {
+    if (pendingNavigation?.type === "tab" && pendingNavigation.value) {
+      setActiveTab(pendingNavigation.value)
+    }
+    handleDiscardReview()
+    setDiscardDialogOpen(false)
+    setPendingNavigation(null)
+  }
+
+  const cancelDiscard = () => {
+    setDiscardDialogOpen(false)
+    setPendingNavigation(null)
   }
 
   const suggestions = selectedFile ? getSuggestionsForFile(selectedFile.name) : []
@@ -187,34 +215,27 @@ export function FileViewer() {
         </div>
 
         {/* Review mode footer */}
-        <div className="border-t px-4 py-3 bg-muted/20 flex items-center justify-between gap-4">
+        <div className="border-t px-4 py-3 bg-muted/20 flex items-center justify-end gap-3">
           <Button 
-            variant="ghost" 
+            variant="outline" 
             size="sm" 
             onClick={handleDiscardReview}
-            className="text-muted-foreground hover:text-destructive"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
             Discard
           </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleApplyReview}>
-              <Check className="h-3.5 w-3.5" />
-              Discard
-            </Button>
-            <Button 
-              size="sm" 
-              onClick={() => {
-                setEditContent(reviewContent)
-                setIsDirty(true)
-                setIsReviewMode(false)
-                setCommitDialogOpen(true)
-              }}
-            >
-              <Save className="h-3.5 w-3.5" />
-              Update Context
-            </Button>
-          </div>
+          <Button 
+            size="sm" 
+            onClick={() => {
+              setEditContent(reviewContent)
+              setIsDirty(true)
+              setIsReviewMode(false)
+              setCommitDialogOpen(true)
+            }}
+          >
+            <Save className="h-3.5 w-3.5" />
+            Update Context
+          </Button>
         </div>
       </div>
     )
@@ -235,7 +256,7 @@ export function FileViewer() {
         </div>
       )}
 
-      <Tabs value={activeTab} onValueChange={(v) => !tabsDisabled && setActiveTab(v as Tab)} className="flex flex-col h-full">
+      <Tabs value={activeTab} onValueChange={(v) => !isProcessing && handleTabChange(v as Tab)} className="flex flex-col h-full">
         {/* Tab bar */}
         <div className="flex items-center justify-between border-b px-4 py-0 bg-background shrink-0">
           <TabsList className="h-10 bg-transparent gap-0 rounded-none p-0">
@@ -442,6 +463,30 @@ export function FileViewer() {
                 Commit
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Discard review confirmation dialog */}
+      <Dialog open={discardDialogOpen} onOpenChange={setDiscardDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Discard Changes?</DialogTitle>
+            <DialogDescription>
+              You have unsaved changes from processed suggestions. Are you sure you want to discard them?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="outline" size="sm" onClick={cancelDiscard}>
+              Cancel
+            </Button>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={confirmDiscard}
+            >
+              Discard Changes
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
