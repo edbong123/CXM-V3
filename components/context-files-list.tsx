@@ -92,7 +92,6 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
               </div>
             </button>
           </div>
-          <div className="h-px bg-border mx-3 my-2" />
         </>
       )}
 
