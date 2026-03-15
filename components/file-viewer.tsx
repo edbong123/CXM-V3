@@ -146,49 +146,73 @@ export function FileViewer() {
     return (
       <div className="flex flex-col h-full bg-background">
         {/* Review mode header */}
-        <div className="border-b bg-amber-50 dark:bg-amber-950/30 px-4 py-3">
-          <div className="flex items-start gap-3">
-            <div className="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0 mt-0.5">
-              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        <div className="border-b">
+          {/* Top bar with file info */}
+          <div className="flex items-center justify-between px-4 py-2.5 bg-muted/30">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded bg-primary/10 flex items-center justify-center">
+                <FileText className="h-3.5 w-3.5 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-medium">{selectedFile?.name.replace(/\.md$/, "")}</p>
+                <p className="text-xs text-muted-foreground">Updated version</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-sm text-amber-900 dark:text-amber-200">
-                Review Updated Version
-              </h3>
-              <p className="text-sm text-amber-700 dark:text-amber-400 mt-0.5">
-                {acceptedCount} suggestion{acceptedCount !== 1 ? "s" : ""} incorporated. 
-                Review the changes below before saving. Saving will overwrite the current document.
-              </p>
-            </div>
+            <Badge variant="secondary" className="text-xs font-medium">
+              {acceptedCount} change{acceptedCount !== 1 ? "s" : ""} applied
+            </Badge>
+          </div>
+          
+          {/* Warning banner */}
+          <div className="flex items-center gap-3 px-4 py-2.5 bg-amber-50 dark:bg-amber-950/20 border-t border-amber-200/50 dark:border-amber-800/30">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500 shrink-0" />
+            <p className="text-sm text-amber-800 dark:text-amber-300">
+              Review the changes below. Saving will overwrite the current document.
+            </p>
           </div>
         </div>
 
         {/* Editor with review content */}
-        <div className="flex-1 overflow-hidden p-4">
-          <SimpleWysiwyg
-            value={reviewContent}
-            onChange={setReviewContent}
-            placeholder="Document content..."
-            className="h-full"
-          />
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full p-4">
+            <div className="h-full rounded-lg border shadow-sm overflow-hidden bg-card">
+              <SimpleWysiwyg
+                value={reviewContent}
+                onChange={setReviewContent}
+                placeholder="Document content..."
+                className="h-full border-0"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Review mode footer */}
-        <div className="border-t px-4 py-3 bg-muted/30 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Badge variant="outline" className="text-xs">
-              {acceptedCount} change{acceptedCount !== 1 ? "s" : ""}
-            </Badge>
-            <span>Ready for review</span>
-          </div>
+        <div className="border-t px-4 py-3 bg-muted/20 flex items-center justify-between gap-4">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleDiscardReview}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            <X className="h-4 w-4" />
+            Discard
+          </Button>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleDiscardReview}>
-              <RotateCcw className="h-3.5 w-3.5" />
-              Discard Changes
-            </Button>
-            <Button size="sm" onClick={handleApplyReview}>
+            <Button variant="outline" size="sm" onClick={handleApplyReview}>
               <Check className="h-3.5 w-3.5" />
-              Apply & Edit
+              Apply & Continue Editing
+            </Button>
+            <Button 
+              size="sm" 
+              onClick={() => {
+                setEditContent(reviewContent)
+                setIsDirty(true)
+                setIsReviewMode(false)
+                setCommitDialogOpen(true)
+              }}
+            >
+              <Save className="h-3.5 w-3.5" />
+              Save to GitHub
             </Button>
           </div>
         </div>
