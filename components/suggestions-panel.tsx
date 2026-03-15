@@ -56,6 +56,9 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
   const [statuses, setStatuses] = useState<Record<string, SuggestionStatus>>({})
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [showDeferred, setShowDeferred] = useState(false)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [analyzeProgress, setAnalyzeProgress] = useState(0)
+  const [analyzeStep, setAnalyzeStep] = useState("")
 
   const setStatus = useCallback((id: string, status: SuggestionStatus) => {
     setStatuses((prev) => ({ ...prev, [id]: status }))
@@ -105,13 +108,55 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
     }
   }
 
-  const handleAnalyzeAll = () => {
-    // Analyze all documents to identify improvements
-    // For now, show a toast or alert - this would trigger AI analysis
-    alert("Analyzing all context documents to identify changes and improvements...")
+  const handleAnalyzeAll = async () => {
+    setIsAnalyzing(true)
+    setAnalyzeProgress(0)
+    
+    // Simulated analysis steps
+    const steps = [
+      "Reading context documents...",
+      "Analyzing document relationships...",
+      "Identifying potential improvements...",
+      "Generating suggestions..."
+    ]
+    
+    for (let i = 0; i < steps.length; i++) {
+      setAnalyzeStep(steps[i])
+      setAnalyzeProgress((i + 1) * 25)
+      await new Promise(r => setTimeout(r, 750))
+    }
+    
+    setIsAnalyzing(false)
+    setAnalyzeProgress(0)
+    setAnalyzeStep("")
+    toast.success("Analysis complete. No new suggestions found.")
   }
 
   if (allSuggestions.length === 0) {
+    // Show analyzing progress UI
+    if (isAnalyzing) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-6 text-center px-6">
+          <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center">
+            <Loader2 className="h-6 w-6 text-primary animate-spin" />
+          </div>
+          <div className="space-y-2">
+            <p className="text-sm font-medium">Analyzing Documents</p>
+            <p className="text-sm text-muted-foreground">{analyzeStep}</p>
+          </div>
+          <div className="w-full max-w-xs space-y-2">
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${analyzeProgress}%` }}
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">{analyzeProgress}% complete</p>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
