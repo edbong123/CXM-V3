@@ -64,6 +64,15 @@ export async function fetchFileContent(token: string, repo: string, path: string
   return data.content
 }
 
+export async function fetchFileSha(token: string, repo: string, path: string): Promise<string> {
+  const res = await fetch(`${BASE}/repos/${repo}/contents/${path}`, {
+    headers: headers(token),
+  })
+  if (!res.ok) throw new Error(`Failed to fetch file SHA: ${res.statusText}`)
+  const data: { sha: string } = await res.json()
+  return data.sha
+}
+
 export async function commitFile(
   token: string,
   repo: string,

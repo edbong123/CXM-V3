@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react"
 import type { ContextFile } from "@/lib/github-client"
-import { fetchContextFiles, fetchFileContent, commitFile } from "@/lib/github-client"
+import { fetchContextFiles, fetchFileContent, fetchFileSha, commitFile } from "@/lib/github-client"
 
 interface GitHubUser {
   login: string
@@ -222,7 +222,9 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     setIsCommitting(true)
     setError(null)
     try {
-      await commitFile(token, repo, selectedFile.path, selectedFile.sha, content, message)
+      // Fetch the latest SHA to avoid conflicts with concurrent changes
+      const latestSha = await fetchFileSha(token, repo, selectedFile.path)
+      await commitFile(token, repo, selectedFile.path, latestSha, content, message)
       // Update sha by re-fetching
       const fetched = await fetchContextFiles(token, repo)
       setFiles(fetched)
