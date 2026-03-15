@@ -231,7 +231,7 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
     toast.success("Analysis complete. No new suggestions found.")
   }
 
-  if (allSuggestions.length === 0) {
+  if (allSuggestions.length === 0 && acceptedIds.length === 0 && deferredCount === 0) {
     // Show analyzing progress UI
     if (isAnalyzing) {
       return (
