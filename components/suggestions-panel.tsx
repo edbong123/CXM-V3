@@ -342,7 +342,7 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
 
       {/* Suggestions list - change tracking style */}
       <div className="flex-1 overflow-y-auto">
-        {visibleSuggestions.length === 0 ? (
+        {allSuggestions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2 text-center px-6">
             <Check className="h-8 w-8 text-emerald-500" />
             <p className="text-sm font-medium">All suggestions reviewed</p>
@@ -354,7 +354,7 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
           </div>
         ) : (
           <div className="divide-y">
-            {visibleSuggestions.map((suggestion) => (
+            {allSuggestions.map((suggestion) => (
               <SuggestionCard
                 key={suggestion.id}
                 suggestion={suggestion}
