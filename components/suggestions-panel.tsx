@@ -8,6 +8,16 @@ import { useGitHub } from "@/contexts/github-context"
 import { getSuggestionsForFile, type Suggestion, type SuggestionStatus } from "@/lib/mock-suggestions"
 import { cn } from "@/lib/utils"
 
+function renderMarkdownAsText(markdown: string): string {
+  return markdown
+    .replace(/\*\*(.+?)\*\*/g, "$1") // Remove bold markers
+    .replace(/\*(.+?)\*/g, "$1") // Remove italic markers
+    .replace(/`([^`]+)`/g, "$1") // Remove inline code markers
+    .replace(/^### /gm, "• ") // Convert h3 to bullets
+    .replace(/^## /gm, "") // Remove h2 markers but keep text
+    .replace(/^# /gm, "") // Remove h1 markers but keep text
+}
+
 interface SuggestionsPanelProps {
   onIncorporated: (newContent: string, acceptedCount: number) => void
   onProcessingChange: (processing: boolean) => void
@@ -292,8 +302,8 @@ function SuggestionCard({
               <div className="px-3 py-1.5 text-emerald-700 dark:text-emerald-400 font-sans text-xs font-medium border-b border-emerald-200 dark:border-emerald-800 bg-emerald-100/50 dark:bg-emerald-950/50">
                 Proposed
               </div>
-              <pre className="px-3 py-2.5 text-emerald-800 dark:text-emerald-300 whitespace-pre-wrap leading-relaxed">
-                {suggestion.after}
+              <pre className="px-3 py-2.5 text-emerald-800 dark:text-emerald-300 whitespace-pre-wrap leading-relaxed font-sans">
+                {renderMarkdownAsText(suggestion.after)}
               </pre>
             </div>
           </div>
