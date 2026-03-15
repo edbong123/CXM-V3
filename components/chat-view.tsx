@@ -502,7 +502,7 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center px-6">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
           <div className="w-full max-w-2xl flex flex-col items-center gap-8">
             {/* Title */}
             <h1 className="text-3xl font-serif text-foreground/90">
