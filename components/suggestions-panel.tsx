@@ -209,21 +209,18 @@ function SuggestionCard({
   const TypeIcon = typeConfig.icon
 
   return (
-    <div className="flex flex-col">
-      {/* Collapsed header - always visible */}
-      <button
-        onClick={onToggleExpand}
-        className="flex items-start gap-3 p-4 w-full text-left hover:bg-muted/50 transition-colors"
-      >
+    <div className="flex flex-col border-b last:border-b-0">
+      {/* Always-visible row */}
+      <div className="flex items-start gap-3 px-4 pt-3 pb-2">
         {/* Type indicator */}
         <div className={cn(
           "shrink-0 h-6 w-6 rounded flex items-center justify-center mt-0.5",
-          typeConfig.className.replace("border-", "bg-").replace("text-", "text-")
+          typeConfig.className
         )}>
           <TypeIcon className="h-3.5 w-3.5" />
         </div>
-        
-        {/* Summary and type */}
+
+        {/* Summary + type badge + expand toggle */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <Badge variant="outline" className={cn("text-xs font-medium shrink-0", typeConfig.className)}>
@@ -233,21 +230,53 @@ function SuggestionCard({
           <p className="text-sm leading-snug">{suggestion.summary}</p>
         </div>
 
-        {/* Expand indicator */}
-        <ChevronDown className={cn(
-          "h-4 w-4 shrink-0 text-muted-foreground transition-transform mt-1",
-          isExpanded && "rotate-180"
-        )} />
-      </button>
+        {/* Expand chevron */}
+        <button
+          onClick={onToggleExpand}
+          className="shrink-0 mt-1 text-muted-foreground hover:text-foreground transition-colors"
+          aria-label={isExpanded ? "Collapse" : "Expand"}
+        >
+          <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
+        </button>
+      </div>
 
-      {/* Expanded content */}
+      {/* Action buttons — always visible */}
+      <div className="flex items-center gap-2 px-4 pb-3 pl-[52px]">
+        <Button
+          size="sm"
+          onClick={onAccept}
+          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs"
+        >
+          <Check className="h-3 w-3" />
+          Accept
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onDefer}
+          className="flex-1 h-7 text-xs"
+        >
+          <Clock className="h-3 w-3" />
+          Later
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={onReject}
+          className="flex-1 h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+        >
+          <X className="h-3 w-3" />
+          Discard
+        </Button>
+      </div>
+
+      {/* Expanded detail */}
       {isExpanded && (
-        <div className="px-4 pb-4 pl-[52px] flex flex-col gap-3">
-          {/* Detail description */}
+        <div className="px-4 pb-4 pl-[52px] flex flex-col gap-3 border-t pt-3">
           <p className="text-sm text-muted-foreground leading-relaxed">{suggestion.detail}</p>
 
           {/* Diff view */}
-          <div className="flex flex-col gap-0 text-xs font-mono rounded-md overflow-hidden border">
+          <div className="flex flex-col text-xs font-mono rounded-md overflow-hidden border">
             {suggestion.before && (
               <div className="bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-800">
                 <div className="px-3 py-1.5 text-red-700 dark:text-red-400 font-sans text-xs font-medium border-b border-red-200 dark:border-red-800 bg-red-100/50 dark:bg-red-950/50">
@@ -266,36 +295,6 @@ function SuggestionCard({
                 {suggestion.after}
               </pre>
             </div>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              onClick={(e) => { e.stopPropagation(); onAccept() }}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-8"
-            >
-              <Check className="h-3.5 w-3.5" />
-              Accept
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => { e.stopPropagation(); onDefer() }}
-              className="flex-1 h-8"
-            >
-              <Clock className="h-3.5 w-3.5" />
-              Later
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={(e) => { e.stopPropagation(); onReject() }}
-              className="flex-1 h-8 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <X className="h-3.5 w-3.5" />
-              Discard
-            </Button>
           </div>
         </div>
       )}
