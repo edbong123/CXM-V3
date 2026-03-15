@@ -22,6 +22,7 @@ interface SuggestionsPanelProps {
   onIncorporated: (newContent: string, acceptedCount: number) => void
   onProcessingChange: (processing: boolean) => void
   isProcessing: boolean
+  onOpenChat?: (fileName: string) => void
 }
 
 const TYPE_CONFIG: Record<Suggestion["type"], { label: string; icon: React.ElementType; className: string }> = {
@@ -47,7 +48,7 @@ const TYPE_CONFIG: Record<Suggestion["type"], { label: string; icon: React.Eleme
   },
 }
 
-export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcessing }: SuggestionsPanelProps) {
+export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcessing, onOpenChat }: SuggestionsPanelProps) {
   const { selectedFile, fileContent } = useGitHub()
 
   const allSuggestions = selectedFile ? getSuggestionsForFile(selectedFile.name) : []
@@ -99,9 +100,9 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
   }
 
   const handleSuggestChanges = () => {
-    // Open prompt window with document attached
-    // For now, show a toast or alert - this would integrate with an AI prompt modal
-    alert(`Opening prompt window with "${selectedFile?.name}" attached for manual suggestions...`)
+    if (selectedFile && onOpenChat) {
+      onOpenChat(selectedFile.name.replace(/\.md$/, ""))
+    }
   }
 
   const handleAnalyzeAll = () => {

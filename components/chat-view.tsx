@@ -10,12 +10,13 @@ import { toast } from "sonner"
 
 interface ChatViewProps {
   onClose: () => void
+  initialFile?: string | null
 }
 
-export function ChatView({ onClose }: ChatViewProps) {
+export function ChatView({ onClose, initialFile }: ChatViewProps) {
   const { files } = useGitHub()
   const [message, setMessage] = useState("")
-  const [selectedFiles, setSelectedFiles] = useState<string[]>([])
+  const [selectedFiles, setSelectedFiles] = useState<string[]>(initialFile ? [initialFile] : [])
   const [showFilePicker, setShowFilePicker] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 

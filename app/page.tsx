@@ -23,6 +23,12 @@ function AppShell() {
   const { user, repoConnected, fetchFiles, error, clearError } = useGitHub()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [chatMode, setChatMode] = useState(false)
+  const [chatInitialFile, setChatInitialFile] = useState<string | null>(null)
+
+  const handleOpenChat = (fileName?: string) => {
+    setChatInitialFile(fileName || null)
+    setChatMode(true)
+  }
 
   // Auto-fetch files when fully connected
   useEffect(() => {
@@ -88,12 +94,12 @@ function AppShell() {
         <NotConnectedState onOpenSettings={() => setSettingsOpen(true)} />
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          <ContextFilesList onNewChat={() => setChatMode(true)} />
+          <ContextFilesList onNewChat={() => handleOpenChat()} />
           <main className="flex-1 overflow-hidden">
             {chatMode ? (
-              <ChatView onClose={() => setChatMode(false)} />
+              <ChatView onClose={() => setChatMode(false)} initialFile={chatInitialFile} />
             ) : (
-              <FileViewer />
+              <FileViewer onOpenChat={handleOpenChat} />
             )}
           </main>
         </div>
