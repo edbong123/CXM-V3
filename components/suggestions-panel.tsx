@@ -245,7 +245,7 @@ function SuggestionCard({
         <Button
           size="sm"
           onClick={onAccept}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs"
+          className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs px-3"
         >
           <Check className="h-3 w-3" />
           Accept
@@ -253,20 +253,21 @@ function SuggestionCard({
         <Button
           size="sm"
           variant="outline"
-          onClick={onDefer}
-          className="flex-1 h-7 text-xs"
-        >
-          <Clock className="h-3 w-3" />
-          Later
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
           onClick={onReject}
-          className="flex-1 h-7 text-xs text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+          className="h-7 text-xs px-3 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
         >
           <X className="h-3 w-3" />
           Discard
+        </Button>
+        <div className="flex-1" />
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onDefer}
+          className="h-7 w-7 text-muted-foreground hover:text-foreground"
+          title="Save for later"
+        >
+          <Clock className="h-3.5 w-3.5" />
         </Button>
       </div>
 
