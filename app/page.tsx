@@ -8,6 +8,7 @@ import { GitHubProvider, useGitHub } from "@/contexts/github-context"
 import { SettingsPanel } from "@/components/settings-panel"
 import { ContextFilesList } from "@/components/context-files-list"
 import { FileViewer } from "@/components/file-viewer"
+import { ChatView } from "@/components/chat-view"
 
 export default function Page() {
   return (
@@ -21,6 +22,7 @@ export default function Page() {
 function AppShell() {
   const { user, repoConnected, fetchFiles, error, clearError } = useGitHub()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [chatMode, setChatMode] = useState(false)
 
   // Auto-fetch files when fully connected
   useEffect(() => {
@@ -86,9 +88,13 @@ function AppShell() {
         <NotConnectedState onOpenSettings={() => setSettingsOpen(true)} />
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          <ContextFilesList />
+          <ContextFilesList onNewChat={() => setChatMode(true)} />
           <main className="flex-1 overflow-hidden">
-            <FileViewer />
+            {chatMode ? (
+              <ChatView onClose={() => setChatMode(false)} />
+            ) : (
+              <FileViewer />
+            )}
           </main>
         </div>
       )}
