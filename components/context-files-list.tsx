@@ -30,6 +30,15 @@ export function ContextFilesList() {
   const [selectedChatFile, setSelectedChatFile] = useState<string | null>(null)
   const [showFileSelector, setShowFileSelector] = useState(false)
 
+  const handleSendChat = () => {
+    if (!chatMessage.trim()) return
+    // TODO: Integrate with AI chat API
+    toast.success(`Chat sent${selectedChatFile ? ` with ${selectedChatFile}` : ""}`)
+    setChatMessage("")
+    setSelectedChatFile(null)
+    setChatOpen(false)
+  }
+
   const handleCreate = async () => {
     const name = newFileName.trim().replace(/[^a-zA-Z0-9._-]/g, "-")
     if (!name) return
@@ -125,17 +134,7 @@ export function ContextFilesList() {
               const isSelected = selectedFile?.path === file.path
               const displayName = file.name.replace(/\.md$/, "")
 
-  const handleSendChat = () => {
-    if (!chatMessage.trim()) return
-    // TODO: Integrate with AI chat API
-    // For now, just show a toast
-    toast.success(`Chat sent${selectedChatFile ? ` with ${selectedChatFile}` : ""}`)
-    setChatMessage("")
-    setSelectedChatFile(null)
-    setChatOpen(false)
-  }
-
-  return (
+              return (
                 <button
                   key={file.path}
                   onClick={() => selectFile(file)}
