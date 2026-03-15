@@ -16,42 +16,93 @@ interface SimpleWysiwygProps {
 
 // Convert markdown to HTML for Tiptap
 function markdownToHtml(markdown: string): string {
-  if (!markdown) return ""
+  if (!markdown) return "<p></p>"
   
-  return markdown
-    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/^- (.+)$/gm, "<li>$1</li>")
-    .replace(/(<li>.*<\/li>)/s, "<ul>$1</ul>")
-    .replace(/\n\n/g, "</p><p>")
-    .replace(/\n/g, "<br>")
-    .replace(/^(.+)$/gm, (match) => {
-      if (match.startsWith("<h") || match.startsWith("<ul") || match.startsWith("<li") || match.startsWith("</")) {
-        return match
-      }
-      return `<p>${match}</p>`
-    })
+  const lines = markdown.split("\n")
+  const result: string[] = []
+  let inList = false
+  
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i]
+    
+    // Apply inline formatting
+    line = line
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    
+    // Check line type
+    if (line.startsWith("## ")) {
+      if (inList) { result.push("</ul>"); inList = false }
+      result.push(`<h2>${line.slice(3)}</h2>`)
+    } else if (line.startsWith("# ")) {
+      if (inList) { result.push("</ul>"); inList = false }
+      result.push(`<h1>${line.slice(2)}</h1>`)
+    } else if (line.startsWith("- ")) {
+      if (!inList) { result.push("<ul>"); inList = true }
+      result.push(`<li><p>${line.slice(2)}</p></li>`)
+    } else if (line.startsWith("* ")) {
+      if (!inList) { result.push("<ul>"); inList = true }
+      result.push(`<li><p>${line.slice(2)}</p></li>`)
+    } else if (line.trim() === "") {
+      if (inList) { result.push("</ul>"); inList = false }
+      // Skip empty lines, Tiptap handles spacing
+    } else {
+      if (inList) { result.push("</ul>"); inList = false }
+      result.push(`<p>${line}</p>`)
+    }
+  }
+  
+  if (inList) result.push("</ul>")
+  
+  return result.join("") || "<p></p>"
 }
 
 // Convert HTML back to markdown
 function htmlToMarkdown(html: string): string {
   if (!html) return ""
   
-  return html
-    .replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n")
-    .replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n")
+  let result = html
+    // Handle headings first
+    .replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_, content) => `# ${stripTags(content)}\n\n`)
+    .replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_, content) => `## ${stripTags(content)}\n\n`)
+    // Handle list items - extract text content
+    .replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, content) => `- ${stripTags(content)}\n`)
+    // Remove ul tags
+    .replace(/<ul[^>]*>/gi, "")
+    .replace(/<\/ul>/gi, "\n")
+    // Handle paragraphs
+    .replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (_, content) => {
+      const text = content
+        .replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**")
+        .replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**")
+        .replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*")
+        .replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*")
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<[^>]+>/g, "")
+      return text + "\n\n"
+    })
+    // Handle any remaining inline formatting
     .replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**")
     .replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**")
     .replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*")
     .replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*")
-    .replace(/<li[^>]*>(.*?)<\/li>/gi, "- $1\n")
-    .replace(/<ul[^>]*>|<\/ul>/gi, "")
-    .replace(/<p[^>]*>(.*?)<\/p>/gi, "$1\n\n")
     .replace(/<br\s*\/?>/gi, "\n")
+    // Clean up remaining tags
     .replace(/<[^>]+>/g, "")
+    // Clean up whitespace
     .replace(/\n{3,}/g, "\n\n")
+    .trim()
+  
+  return result
+}
+
+function stripTags(html: string): string {
+  return html
+    .replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**")
+    .replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**")
+    .replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*")
+    .replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*")
+    .replace(/<[^>]+>/g, "")
     .trim()
 }
 
