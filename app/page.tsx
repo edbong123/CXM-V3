@@ -94,7 +94,7 @@ function AppShell() {
         <NotConnectedState onOpenSettings={() => setSettingsOpen(true)} />
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          <ContextFilesList onNewChat={() => handleOpenChat()} />
+          <ContextFilesList onNewChat={() => handleOpenChat()} onFileSelect={() => setChatMode(false)} />
           <main className="flex-1 overflow-hidden">
             {chatMode ? (
               <ChatView onClose={() => setChatMode(false)} initialFile={chatInitialFile} />

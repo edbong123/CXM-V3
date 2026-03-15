@@ -20,9 +20,10 @@ import { toast } from "sonner"
 
 interface ContextFilesListProps {
   onNewChat: () => void
+  onFileSelect?: () => void
 }
 
-export function ContextFilesList({ onNewChat }: ContextFilesListProps) {
+export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListProps) {
   const { files, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, repo } = useGitHub()
 
   const [createOpen, setCreateOpen] = useState(false)
@@ -127,7 +128,10 @@ export function ContextFilesList({ onNewChat }: ContextFilesListProps) {
               return (
                 <button
                   key={file.path}
-                  onClick={() => selectFile(file)}
+                  onClick={() => {
+                    selectFile(file)
+                    onFileSelect?.()
+                  }}
                   className={cn(
                     "group w-full flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors",
                     isSelected
