@@ -159,7 +159,8 @@ const suggestions: Suggestion[] = [
 ]
 
 export function getSuggestionsForFile(fileName: string): Suggestion[] {
-  return suggestions.filter((s) => s.fileId === fileName)
+  const normalizedName = fileName.toLowerCase()
+  return suggestions.filter((s) => s.fileId.toLowerCase() === normalizedName)
 }
 
 export function getAllMockFileNames(): string[] {
