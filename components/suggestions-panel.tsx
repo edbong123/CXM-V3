@@ -9,7 +9,7 @@ import { getSuggestionsForFile, type Suggestion, type SuggestionStatus } from "@
 import { cn } from "@/lib/utils"
 
 interface SuggestionsPanelProps {
-  onIncorporated: (newContent: string) => void
+  onIncorporated: (newContent: string, acceptedCount: number) => void
   onProcessingChange: (processing: boolean) => void
   isProcessing: boolean
 }
@@ -85,7 +85,7 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
     }
 
     onProcessingChange(false)
-    onIncorporated(newContent)
+    onIncorporated(newContent, accepted.length)
   }
 
   if (allSuggestions.length === 0) {
