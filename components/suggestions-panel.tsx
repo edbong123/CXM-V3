@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { ChevronDown, Check, X, Clock, Sparkles, Loader2, Plus, PenLine, HelpCircle, MoreHorizontal } from "lucide-react"
+import { ChevronDown, Check, X, Clock, Sparkles, Loader2, Plus, PenLine, HelpCircle, MoreHorizontal, MessageSquarePlus, ScanSearch } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useGitHub } from "@/contexts/github-context"
@@ -98,17 +98,57 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
     onIncorporated(newContent, accepted.length)
   }
 
+  const handleSuggestChanges = () => {
+    // Open prompt window with document attached
+    // For now, show a toast or alert - this would integrate with an AI prompt modal
+    alert(`Opening prompt window with "${selectedFile?.name}" attached for manual suggestions...`)
+  }
+
+  const handleAnalyzeAll = () => {
+    // Analyze all documents to identify improvements
+    // For now, show a toast or alert - this would trigger AI analysis
+    alert("Analyzing all context documents to identify changes and improvements...")
+  }
+
   if (allSuggestions.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6">
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center">
           <Sparkles className="h-5 w-5 text-muted-foreground" />
         </div>
         <div>
-          <p className="text-sm font-medium">No suggestions available</p>
+          <p className="text-sm font-medium">No suggestions yet</p>
           <p className="text-sm text-muted-foreground mt-1">
-            AI suggestions will appear here when this file is analyzed.
+            Generate suggestions for this document using one of the options below.
           </p>
+        </div>
+        <div className="flex flex-col gap-2 w-full max-w-xs">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start gap-3 h-auto py-3 px-4"
+            onClick={handleSuggestChanges}
+          >
+            <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+              <MessageSquarePlus className="h-4 w-4 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-medium">Suggest Changes</p>
+              <p className="text-xs text-muted-foreground">Open prompt with this document</p>
+            </div>
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start gap-3 h-auto py-3 px-4"
+            onClick={handleAnalyzeAll}
+          >
+            <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+              <ScanSearch className="h-4 w-4 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-medium">Analyze All Documents</p>
+              <p className="text-xs text-muted-foreground">Find improvements across context</p>
+            </div>
+          </Button>
         </div>
       </div>
     )
