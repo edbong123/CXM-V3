@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, Github, AlertCircle } from "lucide-react"
+import { Settings, Github, AlertCircle, Copy, Check, Plug } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "sonner"
 import { GitHubProvider, useGitHub } from "@/contexts/github-context"
@@ -9,6 +9,7 @@ import { SettingsPanel } from "@/components/settings-panel"
 import { ContextFilesList } from "@/components/context-files-list"
 import { FileViewer } from "@/components/file-viewer"
 import { ChatView } from "@/components/chat-view"
+import { cn } from "@/lib/utils"
 
 export default function Page() {
   return (
@@ -20,8 +21,18 @@ export default function Page() {
 }
 
 function AppShell() {
-  const { user, repoConnected, fetchFiles, error, clearError } = useGitHub()
+  const { user, repo, repoConnected, fetchFiles, error, clearError } = useGitHub()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const gitMcpUrl = repo ? `gitmcp.io/${repo}` : null
+
+  const handleCopyMcp = () => {
+    if (!gitMcpUrl) return
+    navigator.clipboard.writeText(`https://${gitMcpUrl}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
   const [chatMode, setChatMode] = useState(false)
   const [chatInitialFile, setChatInitialFile] = useState<string | null>(null)
   const [chatInitialMode, setChatInitialMode] = useState<"suggest" | "ask-questions" | null>(null)
@@ -55,6 +66,26 @@ function AppShell() {
             <span className="text-xs text-muted-foreground">CXM</span>
           </div>
         </div>
+
+        {/* GitMCP URL */}
+        {gitMcpUrl && (
+          <div className="flex items-center gap-1.5 bg-muted/60 border rounded-md px-2.5 py-1.5">
+            <Plug className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="text-xs text-muted-foreground font-mono">{gitMcpUrl}</span>
+            <button
+              onClick={handleCopyMcp}
+              title="Copy GitMCP URL"
+              className={cn(
+                "ml-1 rounded p-0.5 transition-colors",
+                copied
+                  ? "text-emerald-600"
+                  : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           {user && (
