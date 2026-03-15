@@ -51,10 +51,9 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
   useEffect(() => {
     if (initialMode === "ask-questions" && initialFile && !hasTriggeredInitialMode) {
       setHasTriggeredInitialMode(true)
-      // Auto-trigger asking questions about the document
-      const askQuestionsPrompt = `Please review this document and ask me clarifying questions to help complete or improve it. Focus on missing information, unclear sections, or areas that could be expanded.`
       
-      // Create user message
+      const askQuestionsPrompt = `Please review the "${initialFile}" document and ask me clarifying questions to help complete or improve it. Focus on missing information, unclear sections, or areas that could be expanded.`
+      
       const userMessage: Message = {
         id: `user-${Date.now()}`,
         role: "user",
@@ -64,17 +63,35 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
       setMessages([userMessage])
       setIsTyping(true)
 
-      // Simulate AI response with questions
-      setTimeout(() => {
-        const aiResponse: Message = {
-          id: `assistant-${Date.now()}`,
-          role: "assistant",
-          content: `I've reviewed the ${initialFile} document. Here are some questions to help complete it:\n\n1. **Company Details**: What is the company's founding date and who are the key founders?\n\n2. **Mission Statement**: Could you provide a clear mission statement for the organization?\n\n3. **Contact Information**: What are the primary contact details (email, phone, address) for the company?\n\n4. **Team Structure**: Who are the key team members and what are their roles?\n\n5. **Products/Services**: What specific products or services does the company offer?\n\nPlease answer any of these questions and I'll help format the information for your document.`,
-          attachedFiles: []
-        }
-        setMessages(prev => [...prev, aiResponse])
-        setIsTyping(false)
-      }, 1500)
+      // Call API for questions
+      fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: askQuestionsPrompt }],
+          attachedFiles: [initialFile]
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          const aiResponse: Message = {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: data.content,
+            attachedFiles: []
+          }
+          setMessages(prev => [...prev, aiResponse])
+        })
+        .catch(() => {
+          const errorMessage: Message = {
+            id: `assistant-${Date.now()}`,
+            role: "assistant",
+            content: "Sorry, I encountered an error. Please try again.",
+            attachedFiles: []
+          }
+          setMessages(prev => [...prev, errorMessage])
+        })
+        .finally(() => setIsTyping(false))
     }
   }, [initialMode, initialFile, hasTriggeredInitialMode])
 
@@ -130,22 +147,47 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
     setMessage("")
     setIsTyping(true)
 
-    // Simulate AI thinking
-    await new Promise(r => setTimeout(r, 1500))
+    try {
+      // Call the Restacked API
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [...messages, { role: "user", content: sentMessage }].map(m => ({
+            role: m.role,
+            content: m.content
+          })),
+          attachedFiles: sentFiles
+        })
+      })
 
-    const aiResponse = simulateAIResponse(sentMessage, sentFiles)
-    
-    const assistantMessage: Message = {
-      id: `assistant-${Date.now()}`,
-      role: "assistant",
-      content: aiResponse.content,
-      attachedFiles: sentFiles,
-      suggestedChange: aiResponse.suggestedChange,
-      suggestionState: aiResponse.suggestedChange ? "pending" : undefined,
+      if (!response.ok) {
+        throw new Error("Failed to get response")
+      }
+
+      const data = await response.json()
+      
+      const assistantMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        role: "assistant",
+        content: data.content,
+        attachedFiles: sentFiles,
+        suggestionState: "pending", // Always offer suggestion option
+      }
+
+      setMessages(prev => [...prev, assistantMessage])
+    } catch (error) {
+      console.error("[v0] Chat error:", error)
+      const errorMessage: Message = {
+        id: `assistant-${Date.now()}`,
+        role: "assistant",
+        content: "Sorry, I encountered an error processing your request. Please try again.",
+        attachedFiles: []
+      }
+      setMessages(prev => [...prev, errorMessage])
+    } finally {
+      setIsTyping(false)
     }
-
-    setMessages(prev => [...prev, assistantMessage])
-    setIsTyping(false)
   }
 
   const handleShowSuggestion = (msgId: string) => {
