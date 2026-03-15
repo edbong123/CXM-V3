@@ -20,7 +20,7 @@ function renderMarkdownAsText(markdown: string): string {
 }
 
 interface SuggestionsPanelProps {
-  onIncorporated: (newContent: string, acceptedCount: number) => void
+  onIncorporated: (newContent: string, acceptedCount: number, commitSummary: string) => void
   onProcessingChange: (processing: boolean) => void
   isProcessing: boolean
   onOpenChat?: (fileName: string, mode?: "suggest" | "ask-questions") => void
@@ -175,9 +175,19 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
 
       const data = await response.json()
       const newContent = data.newContent || fileContent
+      const commitSummary = data.commitSummary || ""
+
+      // Mark all processed suggestions so they disappear from the panel
+      for (const s of allAccepted) {
+        if (s.id.startsWith("suggestion-")) {
+          updateSuggestionStatus(s.id, "processed")
+        } else {
+          setMockStatuses(prev => ({ ...prev, [s.id]: "processed" as any }))
+        }
+      }
 
       onProcessingChange(false)
-      onIncorporated(newContent, allAccepted.length)
+      onIncorporated(newContent, allAccepted.length, commitSummary)
     } catch (error) {
       console.error("[v0] Failed to process suggestions:", error)
       onProcessingChange(false)
@@ -189,8 +199,14 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
         } else if (!s.before) {
           newContent = newContent.trimEnd() + "\n\n" + s.after + "\n"
         }
+        // Mark as processed even in fallback
+        if (s.id.startsWith("suggestion-")) {
+          updateSuggestionStatus(s.id, "processed")
+        } else {
+          setMockStatuses(prev => ({ ...prev, [s.id]: "processed" as any }))
+        }
       }
-      onIncorporated(newContent, allAccepted.length)
+      onIncorporated(newContent, allAccepted.length, "")
     }
   }
 

@@ -96,10 +96,13 @@ export function FileViewer({ onOpenChat }: { onOpenChat?: (file: string, mode?: 
     }
   }
 
-  const handleIncorporated = (newContent: string, count: number) => {
+  const handleIncorporated = (newContent: string, count: number, commitSummary: string) => {
     setReviewContent(newContent)
     setAcceptedCount(count)
     setIsReviewMode(true)
+    if (commitSummary) {
+      setCommitMessage(commitSummary)
+    }
   }
 
   const handleApplyReview = () => {

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
 
-export type SuggestionStatus = "pending" | "accepted" | "rejected" | "later"
+export type SuggestionStatus = "pending" | "accepted" | "rejected" | "later" | "processed"
 
 export interface Suggestion {
   id: string

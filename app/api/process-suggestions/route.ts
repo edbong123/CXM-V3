@@ -29,11 +29,13 @@ Rules:
 2. Maintain the document's existing markdown formatting
 3. Ensure smooth transitions between sections
 4. Keep the document's tone and style consistent
-5. Do not add any commentary or explanations - only output the updated document
+5. Do not add any commentary or explanations
 6. If a suggestion adds new content (no "before" text), integrate it in the most appropriate location
 7. Preserve all existing content that is not being modified
 
-Output ONLY the complete updated document content, nothing else.`
+Return a JSON object with exactly two fields:
+- "newContent": the complete updated document as a string
+- "commitSummary": a single concise sentence (max 72 chars) describing what was changed, suitable as a git commit message`
 
     const suggestionsText = acceptedSuggestions.map((s, i) => {
       if (s.before) {
@@ -75,6 +77,7 @@ Generate the complete updated document with all accepted suggestions incorporate
         ],
         temperature: 0.3,
         max_tokens: 4096,
+        response_format: { type: "json_object" },
       }),
     })
 
@@ -88,9 +91,21 @@ Generate the complete updated document with all accepted suggestions incorporate
     }
 
     const data = await response.json()
-    const newContent = data.choices?.[0]?.message?.content || documentContent
+    const rawMessage = data.choices?.[0]?.message?.content || "{}"
+    
+    let newContent = documentContent
+    let commitSummary = ""
+    
+    try {
+      const parsed = JSON.parse(rawMessage)
+      newContent = parsed.newContent || documentContent
+      commitSummary = parsed.commitSummary || ""
+    } catch {
+      // If JSON parsing fails, treat the raw message as the document content
+      newContent = rawMessage || documentContent
+    }
 
-    return NextResponse.json({ newContent })
+    return NextResponse.json({ newContent, commitSummary })
   } catch (error) {
     console.error("[v0] Process suggestions API error:", error)
     return NextResponse.json(
