@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Plus, Loader2, BookOpen, RefreshCw } from "lucide-react"
+import { FileText, Plus, Loader2, List, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -67,22 +67,24 @@ export function ContextFilesList() {
           <Plus className="h-3.5 w-3.5" />
           New file
         </Button>
+      </div>
+
+      {/* Section label + refresh */}
+      <div className="px-4 pt-1 pb-1.5 flex items-center justify-between">
+        <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
+          Context Files
+        </p>
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+          className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground -mr-1"
           onClick={fetchFiles}
           disabled={isLoadingFiles}
           title="Refresh"
         >
-          <RefreshCw className={cn("h-3.5 w-3.5", isLoadingFiles && "animate-spin")} />
+          <RefreshCw className={cn("h-3 w-3", isLoadingFiles && "animate-spin")} />
         </Button>
       </div>
-
-      {/* Section label */}
-      <p className="px-4 pt-1 pb-1.5 text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
-        Context Files
-      </p>
 
       {/* File list */}
       <div className="flex-1 overflow-y-auto">
@@ -121,7 +123,7 @@ export function ContextFilesList() {
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     {isReadme ? (
-                      <BookOpen className={cn(
+                      <List className={cn(
                         "h-3.5 w-3.5 shrink-0",
                         isSelected ? "text-primary" : "text-muted-foreground"
                       )} />
