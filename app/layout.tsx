@@ -1,10 +1,22 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { Poppins, Lora, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const poppins = Poppins({ 
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-sans"
+});
+const lora = Lora({ 
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-serif"
+});
+const geistMono = Geist_Mono({ 
+  subsets: ["latin"],
+  variable: "--font-mono"
+});
 
 export const metadata: Metadata = {
   title: 'Context Manager',
@@ -36,7 +48,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased">
+      <body className={`${poppins.variable} ${lora.variable} ${geistMono.variable} font-sans antialiased`}>
         {children}
         <Analytics />
       </body>

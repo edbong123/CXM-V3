@@ -299,36 +299,35 @@ export function FileViewer({ onOpenChat }: { onOpenChat?: (file: string, mode?: 
       )}
 
       <Tabs value={activeTab} onValueChange={(v) => !isProcessing && handleTabChange(v as Tab)} className="flex flex-col h-full">
-        {/* Tab bar */}
-        <div className="flex items-center justify-between border-b px-4 py-0 bg-background shrink-0">
-          <TabsList className="h-10 bg-transparent gap-0 rounded-none p-0">
+        {/* Tab bar - Claude-style clean, minimal */}
+        <div className="flex items-center justify-between px-4 py-2 bg-card/50 border-b shrink-0">
+          <TabsList className="h-9 bg-muted/50 rounded-lg p-1 gap-1">
             {(["view", "edit", "suggestions", "history"] as Tab[]).map((tab) => (
               <TabsTrigger
                 key={tab}
                 value={tab}
                 disabled={tabsDisabled}
                 className={cn(
-                  "relative h-10 rounded-none border-b-2 border-transparent px-4 text-sm font-medium capitalize",
-                  "data-[state=active]:border-primary data-[state=active]:shadow-none data-[state=active]:bg-transparent",
-                  "text-muted-foreground data-[state=active]:text-foreground",
-                  "hover:text-foreground transition-colors",
+                  "relative h-7 rounded-md px-3 text-sm font-medium",
+                  "data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-foreground",
+                  "text-muted-foreground hover:text-foreground/80 transition-all duration-150",
                   tabsDisabled && "opacity-50 cursor-not-allowed"
                 )}
               >
                 {tab === "suggestions" && suggestions.length > 0 ? (
                   <span className="flex items-center gap-1.5">
                     Suggestions
-                    <Badge variant="secondary" className="h-4.5 px-1.5 text-xs">
+                    <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-primary/15 text-primary text-xs font-semibold tabular-nums">
                       {suggestions.length}
-                    </Badge>
+                    </span>
                   </span>
                 ) : tab === "history" ? (
                   <span className="flex items-center gap-1.5">
                     History
                     {commits.length > 0 && (
-                      <Badge variant="secondary" className="h-4.5 px-1.5 text-xs">
+                      <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-muted text-muted-foreground text-xs font-medium tabular-nums">
                         {commits.length}
-                      </Badge>
+                      </span>
                     )}
                   </span>
                 ) : (
@@ -338,8 +337,8 @@ export function FileViewer({ onOpenChat }: { onOpenChat?: (file: string, mode?: 
             ))}
           </TabsList>
 
-          {/* File name */}
-          <span className="text-xs font-mono text-muted-foreground hidden md:block">
+          {/* File name - serif for that editorial feel */}
+          <span className="text-sm font-serif text-muted-foreground hidden md:block tracking-tight">
             {selectedFile.name.replace(/\.md$/, "")}
           </span>
         </div>

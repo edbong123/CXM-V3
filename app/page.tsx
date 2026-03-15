@@ -40,12 +40,18 @@ function AppShell() {
   const [chatInitialFile, setChatInitialFile] = useState<string | null>(null)
   const [chatInitialMode, setChatInitialMode] = useState<"suggest" | "ask-questions" | null>(null)
   const [chatKey, setChatKey] = useState(0)
+  const [pendingTab, setPendingTab] = useState<"suggestions" | null>(null)
 
   const handleOpenChat = (fileName?: string, mode?: "suggest" | "ask-questions") => {
     setChatInitialFile(fileName || null)
     setChatInitialMode(mode || null)
     setChatKey(k => k + 1)
     setChatMode(true)
+  }
+
+  const handleNavigateToSuggestions = () => {
+    setPendingTab("suggestions")
+    setChatMode(false)
   }
 
   // Auto-fetch files when fully connected
@@ -63,10 +69,10 @@ function AppShell() {
       {/* Top bar */}
       <header className="flex items-center justify-between border-b px-4 h-12 shrink-0 bg-background z-10">
         <div className="flex items-center gap-3">
-          <img src="/logo.svg" alt="Restacked" className="h-6 w-6" />
+          <img src="/logo.svg" alt="Restacked" className="h-7 w-7" />
           <div className="flex flex-col leading-none">
-            <span className="text-sm font-semibold tracking-tight">restacked.ai</span>
-            <span className="text-xs text-muted-foreground">CXM</span>
+            <span className="text-sm font-serif font-semibold tracking-tight">restacked.ai</span>
+            <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Context Manager</span>
           </div>
         </div>
 
@@ -135,9 +141,9 @@ function AppShell() {
           <ContextFilesList onNewChat={() => handleOpenChat()} onFileSelect={() => setChatMode(false)} />
           <main className="flex-1 overflow-hidden">
             {chatMode ? (
-              <ChatView key={chatKey} onClose={() => setChatMode(false)} initialFile={chatInitialFile} initialMode={chatInitialMode} />
+              <ChatView key={chatKey} onClose={() => setChatMode(false)} initialFile={chatInitialFile} initialMode={chatInitialMode} onNavigateToSuggestions={handleNavigateToSuggestions} />
             ) : (
-              <FileViewer onOpenChat={handleOpenChat} />
+              <FileViewer onOpenChat={handleOpenChat} pendingTab={pendingTab} onPendingTabHandled={() => setPendingTab(null)} />
             )}
           </main>
         </div>
@@ -156,7 +162,7 @@ function NotConnectedState({ onOpenSettings }: { onOpenSettings: () => void }) {
           <Github className="h-8 w-8 text-muted-foreground/60" />
         </div>
         <div className="flex flex-col gap-2">
-          <h1 className="text-xl font-semibold">Connect your repository</h1>
+          <h1 className="text-xl font-serif font-semibold">Connect your repository</h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
             Add your GitHub Personal Access Token and connect a repository to start managing context files with AI-powered suggestions.
           </p>
