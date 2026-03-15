@@ -68,7 +68,7 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
       {/* LLM.txt - always at top */}
       {llmFile && (
         <>
-          <div className="px-2 pb-2">
+          <div className="px-3 py-2">
             <button
               onClick={() => {
                 selectFile(llmFile)
@@ -92,13 +92,12 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
               </div>
             </button>
           </div>
-          <div className="h-px bg-border mx-2 mb-2" />
+          <div className="h-px bg-border mx-3 my-2" />
         </>
       )}
 
-      {/* Divider */}
-      <div className="h-px bg-border mx-2 mb-2" />
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
+      {/* Context Files Header */}
+      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
         <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
           Context Files
         </p>
