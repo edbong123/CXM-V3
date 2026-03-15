@@ -28,15 +28,17 @@ interface Message {
 interface ChatViewProps {
   onClose: () => void
   initialFile?: string | null
+  initialMode?: "suggest" | "ask-questions" | null
 }
 
-export function ChatView({ onClose, initialFile }: ChatViewProps) {
+export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
   const { files } = useGitHub()
   const [message, setMessage] = useState("")
   const [selectedFiles, setSelectedFiles] = useState<string[]>(initialFile ? [initialFile] : [])
   const [showFilePicker, setShowFilePicker] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [isTyping, setIsTyping] = useState(false)
+  const [hasTriggeredInitialMode, setHasTriggeredInitialMode] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -44,6 +46,37 @@ export function ChatView({ onClose, initialFile }: ChatViewProps) {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
+
+  // Handle "ask-questions" mode - auto-send a prompt to ask the AI to ask questions
+  useEffect(() => {
+    if (initialMode === "ask-questions" && initialFile && !hasTriggeredInitialMode) {
+      setHasTriggeredInitialMode(true)
+      // Auto-trigger asking questions about the document
+      const askQuestionsPrompt = `Please review this document and ask me clarifying questions to help complete or improve it. Focus on missing information, unclear sections, or areas that could be expanded.`
+      
+      // Create user message
+      const userMessage: Message = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: askQuestionsPrompt,
+        attachedFiles: [initialFile]
+      }
+      setMessages([userMessage])
+      setIsTyping(true)
+
+      // Simulate AI response with questions
+      setTimeout(() => {
+        const aiResponse: Message = {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: `I've reviewed the ${initialFile} document. Here are some questions to help complete it:\n\n1. **Company Details**: What is the company's founding date and who are the key founders?\n\n2. **Mission Statement**: Could you provide a clear mission statement for the organization?\n\n3. **Contact Information**: What are the primary contact details (email, phone, address) for the company?\n\n4. **Team Structure**: Who are the key team members and what are their roles?\n\n5. **Products/Services**: What specific products or services does the company offer?\n\nPlease answer any of these questions and I'll help format the information for your document.`,
+          attachedFiles: []
+        }
+        setMessages(prev => [...prev, aiResponse])
+        setIsTyping(false)
+      }, 1500)
+    }
+  }, [initialMode, initialFile, hasTriggeredInitialMode])
 
   // Sort files: README first, then alphabetical
   const sortedFiles = [...files].sort((a, b) => {

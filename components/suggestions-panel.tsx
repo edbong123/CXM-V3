@@ -22,7 +22,7 @@ interface SuggestionsPanelProps {
   onIncorporated: (newContent: string, acceptedCount: number) => void
   onProcessingChange: (processing: boolean) => void
   isProcessing: boolean
-  onOpenChat?: (fileName: string) => void
+  onOpenChat?: (fileName: string, mode?: "suggest" | "ask-questions") => void
 }
 
 const TYPE_CONFIG: Record<Suggestion["type"], { label: string; icon: React.ElementType; className: string }> = {
@@ -106,6 +106,13 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
   const handleSuggestChanges = () => {
     if (selectedFile && onOpenChat) {
       onOpenChat(selectedFile.name.replace(/\.md$/, ""))
+    }
+  }
+
+  const handleAskQuestions = () => {
+    if (selectedFile && onOpenChat) {
+      // Open chat with document and a prompt asking AI to ask questions
+      onOpenChat(selectedFile.name.replace(/\.md$/, ""), "ask-questions")
     }
   }
 
@@ -194,6 +201,19 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
             <div className="text-left">
               <p className="text-sm font-medium">Analyze All Documents</p>
               <p className="text-xs text-muted-foreground">Find improvements across context</p>
+            </div>
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start gap-3 h-auto py-3 px-4"
+            onClick={handleAskQuestions}
+          >
+            <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+              <HelpCircle className="h-4 w-4 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-medium">Ask me Questions</p>
+              <p className="text-xs text-muted-foreground">Prompt me to complete the document</p>
             </div>
           </Button>
         </div>

@@ -24,7 +24,7 @@ import { cn } from "@/lib/utils"
 
 type Tab = "view" | "edit" | "suggestions" | "history"
 
-export function FileViewer({ onOpenChat }: { onOpenChat?: (file: string) => void }) {
+export function FileViewer({ onOpenChat }: { onOpenChat?: (file: string, mode?: "suggest" | "ask-questions") => void }) {
   const { 
     selectedFile, fileContent, isLoadingContent, commitChanges, isCommitting, token, repo,
     isReviewMode, setIsReviewMode, pendingFileSelect, setPendingFileSelect, forceSelectFile

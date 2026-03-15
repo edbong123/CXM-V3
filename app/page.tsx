@@ -24,10 +24,12 @@ function AppShell() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [chatMode, setChatMode] = useState(false)
   const [chatInitialFile, setChatInitialFile] = useState<string | null>(null)
+  const [chatInitialMode, setChatInitialMode] = useState<"suggest" | "ask-questions" | null>(null)
   const [chatKey, setChatKey] = useState(0)
 
-  const handleOpenChat = (fileName?: string) => {
+  const handleOpenChat = (fileName?: string, mode?: "suggest" | "ask-questions") => {
     setChatInitialFile(fileName || null)
+    setChatInitialMode(mode || null)
     setChatKey(k => k + 1)
     setChatMode(true)
   }
@@ -99,7 +101,7 @@ function AppShell() {
           <ContextFilesList onNewChat={() => handleOpenChat()} onFileSelect={() => setChatMode(false)} />
           <main className="flex-1 overflow-hidden">
             {chatMode ? (
-              <ChatView key={chatKey} onClose={() => setChatMode(false)} initialFile={chatInitialFile} />
+              <ChatView key={chatKey} onClose={() => setChatMode(false)} initialFile={chatInitialFile} initialMode={chatInitialMode} />
             ) : (
               <FileViewer onOpenChat={handleOpenChat} />
             )}
