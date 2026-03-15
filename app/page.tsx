@@ -42,19 +42,19 @@ function AppShell() {
             <span className="text-sm font-semibold tracking-tight">restacked.ai</span>
             <span className="text-xs text-muted-foreground">CXM</span>
           </div>
-          {isConnected && (
-            <span className="hidden md:inline-flex items-center gap-1.5 text-xs text-muted-foreground border rounded-full px-2.5 py-0.5 ml-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-              Connected
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
           {user && (
-            <span className="hidden sm:block text-xs text-muted-foreground">
-              @{user.login}
-            </span>
+            <div className="hidden sm:flex items-center gap-1.5">
+              {isConnected && (
+                <span
+                  title="Connected to GitHub"
+                  className="h-2 w-2 rounded-full bg-emerald-500 shrink-0 cursor-default"
+                />
+              )}
+              <span className="text-xs text-muted-foreground">@{user.login}</span>
+            </div>
           )}
           <Button
             variant="outline"
