@@ -5,12 +5,20 @@ const RESTACKED_API_TOKEN = process.env.RESTACKED_API_TOKEN || "be8b3d73-7241-4b
 
 export async function POST(request: NextRequest) {
   try {
-    const { messages, attachedFiles } = await request.json()
+    const { messages, attachedFiles, fileContents } = await request.json()
 
-    // Build the system prompt with context about attached files
-    const systemPrompt = attachedFiles?.length > 0
-      ? `You are a helpful AI assistant working with context documents. The user has attached the following documents: ${attachedFiles.join(", ")}. Help them with questions, suggestions, and improvements related to these documents.`
-      : `You are a helpful AI assistant. Help users with their questions and tasks.`
+    // Build the system prompt with actual file contents
+    let systemPrompt = `You are a helpful AI assistant working with context documents. Help users with questions, suggestions, and improvements related to their documents.`
+    
+    if (fileContents && Object.keys(fileContents).length > 0) {
+      systemPrompt += `\n\nThe user has attached the following documents:\n`
+      for (const [fileName, content] of Object.entries(fileContents)) {
+        systemPrompt += `\n--- Document: ${fileName} ---\n${content}\n--- End of ${fileName} ---\n`
+      }
+      systemPrompt += `\nUse this document content to provide accurate and helpful responses. When suggesting changes, reference specific sections from the documents.`
+    } else if (attachedFiles?.length > 0) {
+      systemPrompt += `\n\nThe user mentioned these documents: ${attachedFiles.join(", ")}. However, the content was not provided.`
+    }
 
     const response = await fetch(`${RESTACKED_API_URL}/chat/completions`, {
       method: "POST",

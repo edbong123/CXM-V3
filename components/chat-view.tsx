@@ -5,6 +5,7 @@ import { Plus, X, Send, FileText, Sparkles, Loader2, ArrowRight } from "lucide-r
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useGitHub } from "@/contexts/github-context"
+import { fetchFileContent } from "@/lib/github-client"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -32,7 +33,7 @@ interface ChatViewProps {
 }
 
 export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
-  const { files } = useGitHub()
+  const { files, llmFile, token, repo } = useGitHub()
   const [message, setMessage] = useState("")
   const [selectedFiles, setSelectedFiles] = useState<string[]>(initialFile ? [initialFile] : [])
   const [showFilePicker, setShowFilePicker] = useState(false)
@@ -49,7 +50,7 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
 
   // Handle "ask-questions" mode - auto-send a prompt to ask the AI to ask questions
   useEffect(() => {
-    if (initialMode === "ask-questions" && initialFile && !hasTriggeredInitialMode) {
+    if (initialMode === "ask-questions" && initialFile && !hasTriggeredInitialMode && token && repo) {
       setHasTriggeredInitialMode(true)
       
       const askQuestionsPrompt = `Please review the "${initialFile}" document and ask me clarifying questions to help complete or improve it. Focus on missing information, unclear sections, or areas that could be expanded.`
@@ -63,25 +64,42 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
       setMessages([userMessage])
       setIsTyping(true)
 
-      // Call API for questions
-      fetch("/api/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: [{ role: "user", content: askQuestionsPrompt }],
-          attachedFiles: [initialFile]
-        })
-      })
-        .then(res => res.json())
-        .then(data => {
-          const aiResponse: Message = {
-            id: `assistant-${Date.now()}`,
-            role: "assistant",
-            content: data.content,
-            attachedFiles: []
+      // Fetch file content first, then call API
+      const allFiles = [...files, llmFile].filter(Boolean)
+      const file = allFiles.find(f => f?.name.replace(/\.(md|txt)$/, "") === initialFile)
+      
+      const fetchAndAsk = async () => {
+        const fileContents: Record<string, string> = {}
+        if (file) {
+          try {
+            const content = await fetchFileContent(token, repo, file.path)
+            fileContents[initialFile] = content
+          } catch (e) {
+            console.error(`[v0] Failed to fetch content for ${initialFile}:`, e)
           }
-          setMessages(prev => [...prev, aiResponse])
+        }
+
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: askQuestionsPrompt }],
+            attachedFiles: [initialFile],
+            fileContents
+          })
         })
+        
+        const data = await res.json()
+        const aiResponse: Message = {
+          id: `assistant-${Date.now()}`,
+          role: "assistant",
+          content: data.content,
+          attachedFiles: []
+        }
+        setMessages(prev => [...prev, aiResponse])
+      }
+
+      fetchAndAsk()
         .catch(() => {
           const errorMessage: Message = {
             id: `assistant-${Date.now()}`,
@@ -93,7 +111,7 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
         })
         .finally(() => setIsTyping(false))
     }
-  }, [initialMode, initialFile, hasTriggeredInitialMode])
+  }, [initialMode, initialFile, hasTriggeredInitialMode, token, repo, files, llmFile])
 
   // Sort files: README first, then alphabetical
   const sortedFiles = [...files].sort((a, b) => {
@@ -148,6 +166,22 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
     setIsTyping(true)
 
     try {
+      // Fetch content for attached files
+      const allFiles = [...files, llmFile].filter(Boolean)
+      const fileContents: Record<string, string> = {}
+      
+      for (const fileName of sentFiles) {
+        const file = allFiles.find(f => f?.name.replace(/\.(md|txt)$/, "") === fileName)
+        if (file && token && repo) {
+          try {
+            const content = await fetchFileContent(token, repo, file.path)
+            fileContents[fileName] = content
+          } catch (e) {
+            console.error(`[v0] Failed to fetch content for ${fileName}:`, e)
+          }
+        }
+      }
+
       // Call the Restacked API
       const response = await fetch("/api/chat", {
         method: "POST",
@@ -157,7 +191,8 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
             role: m.role,
             content: m.content
           })),
-          attachedFiles: sentFiles
+          attachedFiles: sentFiles,
+          fileContents
         })
       })
 
