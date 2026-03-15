@@ -54,10 +54,10 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
     <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
 
       {/* New Chat button */}
-      <div className="px-3 pt-4 pb-3">
+      <div className="px-2 pt-3 pb-1">
         <Button
           variant="ghost"
-          className="w-full justify-start gap-2 h-9 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground font-normal"
+          className="w-full justify-start gap-2 h-8 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground font-normal px-3"
           onClick={onNewChat}
         >
           <MessageCircle className="h-3.5 w-3.5" />
@@ -67,36 +67,30 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
 
       {/* LLM.txt - always at top */}
       {llmFile && (
-        <>
-          <div className="px-3 py-2">
-            <button
-              onClick={() => {
-                selectFile(llmFile)
-                onFileSelect?.()
-              }}
-              className={cn(
-                "group w-full flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors",
-                selectedFile?.path === llmFile.path
-                  ? "bg-accent text-accent-foreground"
-                  : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
-              )}
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <ListTodo className={cn(
-                  "h-3.5 w-3.5 shrink-0",
-                  selectedFile?.path === llmFile.path ? "text-primary" : "text-muted-foreground/60"
-                )} />
-                <span className="text-sm truncate font-medium">
-                  LLM
-                </span>
-              </div>
-            </button>
-          </div>
-        </>
+        <div className="px-2 pb-1">
+          <button
+            onClick={() => {
+              selectFile(llmFile)
+              onFileSelect?.()
+            }}
+            className={cn(
+              "w-full flex items-center gap-2.5 rounded-md px-3 py-1.5 text-left transition-colors",
+              selectedFile?.path === llmFile.path
+                ? "bg-accent text-accent-foreground"
+                : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
+            )}
+          >
+            <ListTodo className={cn(
+              "h-3.5 w-3.5 shrink-0",
+              selectedFile?.path === llmFile.path ? "text-primary" : "text-muted-foreground/60"
+            )} />
+            <span className="text-sm truncate font-medium">LLM</span>
+          </button>
+        </div>
       )}
 
       {/* Context Files Header */}
-      <div className="px-4 pt-3 pb-2 flex items-center justify-between">
+      <div className="px-3 pt-3 pb-1 flex items-center justify-between">
         <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
           Context Files
         </p>
@@ -140,8 +134,7 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col gap-0.5 px-2 pb-4">
-            {/* Other context files */}
+          <div className="flex flex-col px-2 pb-3">
             {sortedFiles.map((file) => {
               const isSelected = selectedFile?.path === file.path
               const displayName = file.name.replace(/\.md$/, "")
@@ -154,21 +147,17 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
                     onFileSelect?.()
                   }}
                   className={cn(
-                    "group w-full flex items-center justify-between gap-2 rounded-md px-3 py-2 text-left transition-colors",
+                    "w-full flex items-center gap-2.5 rounded-md px-3 py-1.5 text-left transition-colors",
                     isSelected
                       ? "bg-accent text-accent-foreground"
                       : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
                   )}
                 >
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <FileText className={cn(
-                      "h-3.5 w-3.5 shrink-0",
-                      isSelected ? "text-primary" : "text-muted-foreground/60"
-                    )} />
-                    <span className="text-sm truncate">
-                      {displayName}
-                    </span>
-                  </div>
+                  <FileText className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    isSelected ? "text-primary" : "text-muted-foreground/60"
+                  )} />
+                  <span className="text-sm truncate">{displayName}</span>
                 </button>
               )
             })}

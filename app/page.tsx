@@ -5,6 +5,7 @@ import { Settings, Github, AlertCircle, Copy, Check, Plug } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "sonner"
 import { GitHubProvider, useGitHub } from "@/contexts/github-context"
+import { SuggestionsProvider } from "@/contexts/suggestions-context"
 import { SettingsPanel } from "@/components/settings-panel"
 import { ContextFilesList } from "@/components/context-files-list"
 import { FileViewer } from "@/components/file-viewer"
@@ -14,8 +15,10 @@ import { cn } from "@/lib/utils"
 export default function Page() {
   return (
     <GitHubProvider>
-      <AppShell />
-      <Toaster richColors position="bottom-right" />
+      <SuggestionsProvider>
+        <AppShell />
+        <Toaster richColors position="bottom-right" />
+      </SuggestionsProvider>
     </GitHubProvider>
   )
 }

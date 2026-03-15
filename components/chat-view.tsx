@@ -5,6 +5,7 @@ import { Plus, X, Send, FileText, Sparkles, Loader2, ArrowRight } from "lucide-r
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useGitHub } from "@/contexts/github-context"
+import { useSuggestions } from "@/contexts/suggestions-context"
 import { fetchFileContent } from "@/lib/github-client"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -36,6 +37,7 @@ interface ChatViewProps {
 
 export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
   const { files, llmFile, token, repo } = useGitHub()
+  const { addSuggestion } = useSuggestions()
   const [message, setMessage] = useState("")
   const [selectedFiles, setSelectedFiles] = useState<string[]>(initialFile ? [initialFile] : [])
   const [showFilePicker, setShowFilePicker] = useState(false)
@@ -288,13 +290,19 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
     
     const fileName = msg.attachedFiles[0]
     
-    // In a real app, this would add to the database via an API call
-    // For now, show a success toast simulating the DB addition
-    toast.success(`Suggestion added to ${fileName}`, {
-      description: msg.suggestedChange.summary
+    // Add to suggestions context so it appears in the Suggestions tab
+    addSuggestion({
+      fileName,
+      summary: msg.suggestedChange.summary,
+      before: msg.suggestedChange.before,
+      after: msg.suggestedChange.after
     })
     
-    // Mark the suggestion as added (remove from this message)
+    toast.success(`Suggestion added to ${fileName}`, {
+      description: "View it in the Suggestions tab"
+    })
+    
+    // Mark the suggestion as added
     setMessages(prev => prev.map(m =>
       m.id === msg.id ? { ...m, suggestionState: "added" as Message["suggestionState"] } : m
     ))
