@@ -436,24 +436,78 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Loader2 className="h-4 w-4 animate-spin" />
                           Generating suggestion...
-          </div>
-        </>
-      ) : (
-        <>
-          <div className="flex-1 flex flex-col items-center justify-center px-6">
-            <div className="w-full max-w-2xl flex flex-col items-center gap-8">
-              {/* Title */}
-              <h1 className="text-3xl font-serif text-foreground/90">
-                Context is Everything
-              </h1>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Shown: full formatted diff card */}
+                    {msg.role === "assistant" && msg.suggestionState === "shown" && msg.suggestedChange && (
+                      <div className="mt-4 bg-background rounded-lg border p-4 space-y-3">
+                        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                          <Sparkles className="h-4 w-4 text-primary" />
+                          Suggested Change
+                        </div>
+
+                        {msg.suggestedChange.before && (
+                          <div className="space-y-1">
+                            <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">Before</p>
+                            <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900 rounded px-3 py-2 text-sm text-red-800 dark:text-red-200">
+                              {renderMarkdown(msg.suggestedChange.before)}
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="space-y-1">
+                          <p className="text-xs text-muted-foreground uppercase tracking-wide font-medium">After</p>
+                          <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200">
+                            {renderMarkdown(msg.suggestedChange.after)}
+                          </div>
+                        </div>
+
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="w-full gap-2 mt-2"
+                          onClick={() => handleSuggestAsContext(msg)}
+                        >
+                          <ArrowRight className="h-3.5 w-3.5" />
+                          Add to Suggestions
+                        </Button>
+                      </div>
+                    )}
+
+                    {/* Added: confirmation that suggestion was added */}
+                    {msg.role === "assistant" && msg.suggestionState === "added" && (
+                      <div className="mt-4 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-lg p-3 flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-300">
+                        <Sparkles className="h-4 w-4" />
+                        Suggestion added to document
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {/* Typing indicator */}
+              {isTyping && (
+                <div className="flex justify-start">
+                  <div className="bg-muted rounded-2xl px-4 py-3">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Thinking...</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div ref={messagesEndRef} />
             </div>
           </div>
 
-          {/* Input area - empty state */}
-          <div className="px-6 pb-6">
+          {/* Input area - with messages */}
+          <div className="px-6 pb-6 pt-2">
             <div className="max-w-2xl mx-auto">
-            {/* Textarea */}
-            <textarea
+              <div className="relative rounded-xl border bg-card shadow-sm">
+                <textarea
               ref={textareaRef}
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -541,6 +595,109 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* Empty state - centered */}
+          <div className="flex-1 flex flex-col items-center justify-center px-6">
+            <div className="w-full max-w-2xl flex flex-col items-center gap-8">
+              <h1 className="text-3xl font-serif text-foreground/90">
+                Context is Everything
+              </h1>
+            </div>
+          </div>
+
+          {/* Input area - empty state */}
+          <div className="px-6 pb-6">
+            <div className="max-w-2xl mx-auto">
+              <div className="relative rounded-xl border bg-card shadow-sm">
+                <textarea
+                  ref={textareaRef}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="How can I help you today?"
+                  className="w-full resize-none bg-transparent px-4 pt-4 pb-14 text-base placeholder:text-muted-foreground/60 focus:outline-none min-h-[100px]"
+                  rows={2}
+                />
+
+                <div className="absolute bottom-0 left-0 right-0 flex items-center justify-between px-3 py-2.5 border-t bg-card/80 rounded-b-xl">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="relative">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        onClick={() => setShowFilePicker(!showFilePicker)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+
+                      {showFilePicker && (
+                        <div className="absolute bottom-full left-0 mb-2 w-56 bg-popover border rounded-lg shadow-lg overflow-hidden z-50">
+                          <div className="max-h-60 overflow-y-auto">
+                            {sortedFiles.length === 0 ? (
+                              <p className="px-3 py-4 text-sm text-muted-foreground text-center">
+                                No context files available
+                              </p>
+                            ) : (
+                              sortedFiles.map(file => {
+                                const displayName = file.name.replace(/\.md$/, "")
+                                const isSelected = selectedFiles.includes(displayName)
+                                return (
+                                  <button
+                                    key={file.path}
+                                    onClick={() => addFile(displayName)}
+                                    disabled={isSelected}
+                                    className={cn(
+                                      "w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-left transition-colors",
+                                      isSelected
+                                        ? "bg-muted text-muted-foreground cursor-not-allowed"
+                                        : "hover:bg-accent hover:text-accent-foreground"
+                                    )}
+                                  >
+                                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                    <span className="truncate">{displayName}</span>
+                                  </button>
+                                )
+                              })
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedFiles.map(fileName => (
+                      <Badge
+                        key={fileName}
+                        variant="secondary"
+                        className="gap-1 pr-1 bg-primary/10 text-primary border-primary/20"
+                      >
+                        <FileText className="h-3 w-3" />
+                        {fileName}
+                        <button
+                          onClick={() => removeFile(fileName)}
+                          className="ml-0.5 h-4 w-4 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+
+                  <Button
+                    size="icon"
+                    className="h-8 w-8 rounded-lg"
+                    onClick={handleSend}
+                    disabled={!message.trim() || isTyping}
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </>
