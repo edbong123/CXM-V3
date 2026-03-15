@@ -217,62 +217,57 @@ function SuggestionCard({
 }) {
   return (
     <div className="flex flex-col border-b last:border-b-0">
-      {/* Always-visible row */}
-      <div className="flex items-start gap-3 px-4 pt-3 pb-2">
-        {/* Summary + type badge + expand toggle */}
+      {/* Header row: badge + summary + actions */}
+      <div className="flex items-start gap-3 px-4 py-3">
+        {/* Left: badge + summary */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Badge variant="outline" className="text-xs font-medium shrink-0 bg-muted border-muted text-muted-foreground">
-              {TYPE_CONFIG[suggestion.type].label}
-            </Badge>
-          </div>
+          <Badge variant="outline" className="text-xs font-medium bg-muted border-muted text-muted-foreground mb-1.5">
+            {TYPE_CONFIG[suggestion.type].label}
+          </Badge>
           <p className="text-sm leading-snug">{suggestion.summary}</p>
         </div>
 
-        {/* Expand chevron */}
-        <button
-          onClick={onToggleExpand}
-          className="shrink-0 mt-1 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label={isExpanded ? "Collapse" : "Expand"}
-        >
-          <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
-        </button>
-      </div>
-
-      {/* Action buttons — always visible */}
-      <div className="flex items-center gap-2 px-4 pb-3 pl-[52px]">
-        <Button
-          size="sm"
-          onClick={onAccept}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs px-3"
-        >
-          <Check className="h-3 w-3" />
-          Accept
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onReject}
-          className="h-7 text-xs px-3 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
-        >
-          <X className="h-3 w-3" />
-          Discard
-        </Button>
-        <div className="flex-1" />
-        <Button
-          size="icon"
-          variant="ghost"
-          onClick={onDefer}
-          className="h-7 w-7 text-muted-foreground hover:text-foreground"
-          title="Save for later"
-        >
-          <Clock className="h-3.5 w-3.5" />
-        </Button>
+        {/* Right: action buttons + expand */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Button
+            size="sm"
+            onClick={onAccept}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs px-2.5"
+          >
+            <Check className="h-3 w-3" />
+            Accept
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onReject}
+            className="h-7 text-xs px-2.5 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+          >
+            <X className="h-3 w-3" />
+            Discard
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={onDefer}
+            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+            title="Save for later"
+          >
+            <Clock className="h-3.5 w-3.5" />
+          </Button>
+          <button
+            onClick={onToggleExpand}
+            className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+            aria-label={isExpanded ? "Collapse" : "Expand"}
+          >
+            <ChevronDown className={cn("h-4 w-4 transition-transform", isExpanded && "rotate-180")} />
+          </button>
+        </div>
       </div>
 
       {/* Expanded detail */}
       {isExpanded && (
-        <div className="px-4 pb-4 pl-[52px] flex flex-col gap-3 border-t pt-3">
+        <div className="px-4 pb-4 flex flex-col gap-3 border-t pt-3">
           <p className="text-sm text-muted-foreground leading-relaxed">{suggestion.detail}</p>
 
           {/* Diff view */}
