@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useCallback } from "react"
-import { Bold, Italic, Heading2 } from "lucide-react"
+import { Bold, Italic, Heading2, List, Code } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface SimpleWysiwygProps {
@@ -12,64 +12,88 @@ interface SimpleWysiwygProps {
 }
 
 export function SimpleWysiwyg({ value, onChange, placeholder, className }: SimpleWysiwygProps) {
-  const editorRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  const execCmd = useCallback((command: string, value?: string) => {
-    document.execCommand(command, false, value)
-    editorRef.current?.focus()
-  }, [])
+  const wrapSelection = useCallback((before: string, after: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
 
-  const handleInput = useCallback(() => {
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML)
+    const start = textarea.selectionStart
+    const end = textarea.selectionEnd
+    const selected = value.substring(start, end)
+    const newValue = value.substring(0, start) + before + selected + after + value.substring(end)
+    
+    onChange(newValue)
+    
+    // Restore cursor position after React re-render
+    requestAnimationFrame(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + before.length, end + before.length)
+    })
+  }, [value, onChange])
+
+  const insertAtLineStart = useCallback((prefix: string) => {
+    const textarea = textareaRef.current
+    if (!textarea) return
+
+    const start = textarea.selectionStart
+    // Find the start of the current line
+    const lineStart = value.lastIndexOf("\n", start - 1) + 1
+    const newValue = value.substring(0, lineStart) + prefix + value.substring(lineStart)
+    
+    onChange(newValue)
+    
+    requestAnimationFrame(() => {
+      textarea.focus()
+      textarea.setSelectionRange(start + prefix.length, start + prefix.length)
+    })
+  }, [value, onChange])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.metaKey || e.ctrlKey) {
+      if (e.key === "b") {
+        e.preventDefault()
+        wrapSelection("**", "**")
+      } else if (e.key === "i") {
+        e.preventDefault()
+        wrapSelection("*", "*")
+      }
     }
-  }, [onChange])
-
-  // Convert plain text/markdown to basic HTML for display
-  const htmlValue = value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-    .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-    .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*(.+?)\*/g, "<em>$1</em>")
-    .replace(/\n/g, "<br>")
+  }, [wrapSelection])
 
   return (
-    <div className={cn("flex flex-col border rounded-md overflow-hidden", className)}>
+    <div className={cn("flex flex-col border rounded-md overflow-hidden bg-background", className)}>
       {/* Toolbar */}
       <div className="flex items-center gap-0.5 border-b bg-muted/40 px-2 py-1.5">
-        <ToolbarButton onClick={() => execCmd("bold")} title="Bold (Ctrl+B)">
+        <ToolbarButton onClick={() => wrapSelection("**", "**")} title="Bold (Ctrl+B)">
           <Bold className="h-3.5 w-3.5" />
         </ToolbarButton>
-        <ToolbarButton onClick={() => execCmd("italic")} title="Italic (Ctrl+I)">
+        <ToolbarButton onClick={() => wrapSelection("*", "*")} title="Italic (Ctrl+I)">
           <Italic className="h-3.5 w-3.5" />
         </ToolbarButton>
         <div className="w-px h-4 bg-border mx-1" />
-        <ToolbarButton onClick={() => execCmd("formatBlock", "h2")} title="Heading">
+        <ToolbarButton onClick={() => insertAtLineStart("## ")} title="Heading">
           <Heading2 className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => insertAtLineStart("- ")} title="List item">
+          <List className="h-3.5 w-3.5" />
+        </ToolbarButton>
+        <ToolbarButton onClick={() => wrapSelection("`", "`")} title="Inline code">
+          <Code className="h-3.5 w-3.5" />
         </ToolbarButton>
       </div>
 
-      {/* Editor */}
-      <div
-        ref={editorRef}
-        contentEditable
-        suppressContentEditableWarning
-        onInput={handleInput}
-        dangerouslySetInnerHTML={{ __html: htmlValue }}
-        data-placeholder={placeholder || "Start writing..."}
+      {/* Textarea Editor */}
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder || "Start writing..."}
         className={cn(
-          "flex-1 min-h-[300px] p-4 text-sm leading-relaxed outline-none overflow-y-auto",
-          "prose prose-sm max-w-none",
-          "[&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-muted-foreground",
-          "[&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mb-2 [&_h1]:mt-4",
-          "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mb-1.5 [&_h2]:mt-3",
-          "[&_h3]:text-base [&_h3]:font-semibold [&_h3]:mb-1 [&_h3]:mt-2.5",
-          "[&_strong]:font-semibold",
-          "[&_em]:italic"
+          "flex-1 min-h-[300px] p-4 text-sm leading-relaxed outline-none resize-none",
+          "font-mono bg-transparent",
+          "placeholder:text-muted-foreground"
         )}
       />
     </div>
