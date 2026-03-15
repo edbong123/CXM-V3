@@ -5,7 +5,8 @@ import { ChevronDown, Check, X, Clock, Sparkles, Loader2, Plus, PenLine, HelpCir
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useGitHub } from "@/contexts/github-context"
-import { getSuggestionsForFile, type Suggestion, type SuggestionStatus } from "@/lib/mock-suggestions"
+import { useSuggestions, type Suggestion, type SuggestionStatus } from "@/contexts/suggestions-context"
+import { getSuggestionsForFile as getMockSuggestionsForFile } from "@/lib/mock-suggestions"
 import { cn } from "@/lib/utils"
 
 function renderMarkdownAsText(markdown: string): string {
@@ -25,7 +26,7 @@ interface SuggestionsPanelProps {
   onOpenChat?: (fileName: string, mode?: "suggest" | "ask-questions") => void
 }
 
-const TYPE_CONFIG: Record<Suggestion["type"], { label: string; icon: React.ElementType; className: string }> = {
+const TYPE_CONFIG: Record<Suggestion["type"] | "mock", { label: string; icon: React.ElementType; className: string }> = {
   change: { 
     label: "Change", 
     icon: PenLine, 
@@ -46,13 +47,33 @@ const TYPE_CONFIG: Record<Suggestion["type"], { label: string; icon: React.Eleme
     icon: MoreHorizontal, 
     className: "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950/40 dark:text-gray-400 dark:border-gray-800" 
   },
+  mock: { 
+    label: "Suggestion", 
+    icon: Sparkles, 
+    className: "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-800" 
+  },
 }
 
 export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcessing, onOpenChat }: SuggestionsPanelProps) {
   const { selectedFile, fileContent } = useGitHub()
+  const { getSuggestionsForFile } = useSuggestions()
 
-  // Empty array - no mock suggestions shown
-  const allSuggestions: Suggestion[] = []
+  // Get mock suggestions from the library
+  const fileToCheck = selectedFile ? selectedFile.name.replace(/\.md$/, "") : ""
+  const mockSuggestions = fileToCheck ? getMockSuggestionsForFile(fileToCheck) : []
+  
+  // Get user-added suggestions from context (convert to compatible format)
+  const userSuggestions = fileToCheck ? getSuggestionsForFile(fileToCheck).map(s => ({
+    id: s.id,
+    fileId: fileToCheck,
+    type: "mock" as const,
+    summary: s.summary,
+    detail: s.summary,
+    before: s.before,
+    after: s.after,
+  })) : []
+  
+  const allSuggestions = [...mockSuggestions, ...userSuggestions]
 
   const [statuses, setStatuses] = useState<Record<string, SuggestionStatus>>({})
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
