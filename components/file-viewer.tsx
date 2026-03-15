@@ -264,16 +264,18 @@ function MarkdownPreview({ content }: { content: string }) {
   const lines = content.split("\n")
   const elements: React.ReactNode[] = []
   let i = 0
+  let keyCounter = 0
 
   while (i < lines.length) {
     const line = lines[i]
+    const key = keyCounter++
 
     if (line.startsWith("### ")) {
-      elements.push(<h3 key={i} className="text-base font-semibold mt-4 mb-1.5">{renderInline(line.slice(4))}</h3>)
+      elements.push(<h3 key={key} className="text-base font-semibold mt-4 mb-1.5">{renderInline(line.slice(4))}</h3>)
     } else if (line.startsWith("## ")) {
-      elements.push(<h2 key={i} className="text-lg font-semibold mt-5 mb-2">{renderInline(line.slice(3))}</h2>)
+      elements.push(<h2 key={key} className="text-lg font-semibold mt-5 mb-2">{renderInline(line.slice(3))}</h2>)
     } else if (line.startsWith("# ")) {
-      elements.push(<h1 key={i} className="text-xl font-bold mt-0 mb-3">{renderInline(line.slice(2))}</h1>)
+      elements.push(<h1 key={key} className="text-xl font-bold mt-0 mb-3">{renderInline(line.slice(2))}</h1>)
     } else if (line.startsWith("- ") || line.startsWith("* ")) {
       const items: string[] = []
       while (i < lines.length && (lines[i].startsWith("- ") || lines[i].startsWith("* "))) {
@@ -281,7 +283,7 @@ function MarkdownPreview({ content }: { content: string }) {
         i++
       }
       elements.push(
-        <ul key={i} className="list-disc list-inside space-y-1 my-2">
+        <ul key={key} className="list-disc list-inside space-y-1 my-2">
           {items.map((item, j) => <li key={j} className="text-sm">{renderInline(item)}</li>)}
         </ul>
       )
@@ -294,7 +296,7 @@ function MarkdownPreview({ content }: { content: string }) {
         i++
       }
       elements.push(
-        <pre key={i} className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto my-3">
+        <pre key={key} className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto my-3">
           <code>{codeLines.join("\n")}</code>
         </pre>
       )
@@ -305,12 +307,12 @@ function MarkdownPreview({ content }: { content: string }) {
         tableLines.push(lines[i])
         i++
       }
-      elements.push(<TableRenderer key={i} lines={tableLines} />)
+      elements.push(<TableRenderer key={key} lines={tableLines} />)
       continue
     } else if (line.trim() === "") {
-      elements.push(<div key={i} className="h-2" />)
+      elements.push(<div key={key} className="h-2" />)
     } else {
-      elements.push(<p key={i} className="text-sm leading-relaxed my-1">{renderInline(line)}</p>)
+      elements.push(<p key={key} className="text-sm leading-relaxed my-1">{renderInline(line)}</p>)
     }
     i++
   }
