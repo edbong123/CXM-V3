@@ -19,7 +19,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useGitHub } from "@/contexts/github-context"
+import { useSuggestions } from "@/contexts/suggestions-context"
 import { createFile, deleteFile } from "@/lib/github-client"
+import { getSuggestionsForFile as getMockSuggestionsForFile } from "@/lib/mock-suggestions"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -30,6 +32,12 @@ interface ContextFilesListProps {
 
 export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListProps) {
   const { files, llmFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, repo } = useGitHub()
+  const { getSuggestionsForFile: getContextSuggestions } = useSuggestions()
+
+  const getSuggestionCount = (fileName: string) => {
+    const name = fileName.replace(/\.md$/, "")
+    return getMockSuggestionsForFile(name).length + getContextSuggestions(name).length
+  }
 
   const [createOpen, setCreateOpen] = useState(false)
   const [newFileName, setNewFileName] = useState("")
@@ -173,6 +181,7 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
               const isSelected = selectedFile?.path === file.path
               const displayName = file.name.replace(/\.md$/, "")
               const isDeleting = deletingPath === file.path
+              const suggestionCount = getSuggestionCount(file.name)
 
               return (
                 <div
@@ -197,6 +206,17 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
                     )} />
                     <span className="text-sm truncate">{displayName}</span>
                   </button>
+
+                  {suggestionCount > 0 && (
+                    <span className={cn(
+                      "shrink-0 mr-1 text-xs font-medium tabular-nums px-1.5 py-0.5 rounded-full",
+                      isSelected
+                        ? "bg-primary/20 text-primary"
+                        : "bg-muted text-muted-foreground group-hover:bg-accent-foreground/10"
+                    )}>
+                      {suggestionCount}
+                    </span>
+                  )}
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>

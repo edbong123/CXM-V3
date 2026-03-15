@@ -17,7 +17,8 @@ import { Label } from "@/components/ui/label"
 import { useGitHub } from "@/contexts/github-context"
 import { SuggestionsPanel } from "@/components/suggestions-panel"
 import { SimpleWysiwyg } from "@/components/simple-wysiwyg"
-import { getSuggestionsForFile } from "@/lib/mock-suggestions"
+import { getSuggestionsForFile as getMockSuggestionsForFile } from "@/lib/mock-suggestions"
+import { useSuggestions } from "@/contexts/suggestions-context"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
@@ -29,6 +30,8 @@ export function FileViewer({ onOpenChat }: { onOpenChat?: (file: string, mode?: 
     selectedFile, fileContent, isLoadingContent, commitChanges, isCommitting, token, repo,
     isReviewMode, setIsReviewMode, pendingFileSelect, setPendingFileSelect, forceSelectFile
   } = useGitHub()
+
+  const { getSuggestionsForFile: getContextSuggestions } = useSuggestions()
 
   const [activeTab, setActiveTab] = useState<Tab>("view")
   const [editContent, setEditContent] = useState("")
@@ -173,7 +176,9 @@ export function FileViewer({ onOpenChat }: { onOpenChat?: (file: string, mode?: 
     setPendingFileSelect(null)
   }
 
-  const suggestions = selectedFile ? getSuggestionsForFile(selectedFile.name) : []
+  const mockSuggestions = selectedFile ? getMockSuggestionsForFile(selectedFile.name) : []
+  const contextSuggestions = selectedFile ? getContextSuggestions(selectedFile.name) : []
+  const suggestions = [...mockSuggestions, ...contextSuggestions]
 
   if (!selectedFile) {
     return (
