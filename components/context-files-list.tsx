@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo } from "lucide-react"
+import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo, RotateCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -68,24 +68,36 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
       {/* LLM.txt - always at top */}
       {llmFile && (
         <div className="px-2 pb-1">
-          <button
-            onClick={() => {
-              selectFile(llmFile)
-              onFileSelect?.()
-            }}
-            className={cn(
-              "w-full flex items-center gap-2.5 rounded-md px-3 py-1.5 text-left transition-colors",
-              selectedFile?.path === llmFile.path
-                ? "bg-accent text-accent-foreground"
-                : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
-            )}
-          >
-            <ListTodo className={cn(
-              "h-3.5 w-3.5 shrink-0",
-              selectedFile?.path === llmFile.path ? "text-primary" : "text-muted-foreground/60"
-            )} />
-            <span className="text-sm truncate font-medium">LLM</span>
-          </button>
+          <div className="flex items-center gap-2 rounded-md px-1 py-1.5 hover:bg-accent/40 transition-colors group">
+            <button
+              onClick={() => {
+                selectFile(llmFile)
+                onFileSelect?.()
+              }}
+              className={cn(
+                "flex-1 flex items-center gap-2.5 rounded-md px-2 py-1 text-left transition-colors",
+                selectedFile?.path === llmFile.path
+                  ? "bg-accent text-accent-foreground"
+                  : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
+              )}
+            >
+              <ListTodo className={cn(
+                "h-3.5 w-3.5 shrink-0",
+                selectedFile?.path === llmFile.path ? "text-primary" : "text-muted-foreground/60"
+              )} />
+              <span className="text-sm truncate font-medium">LLM</span>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                // Update action will be defined later
+              }}
+              className="rounded p-1 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
+              title="Update LLM"
+            >
+              <RotateCw className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
