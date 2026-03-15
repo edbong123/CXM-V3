@@ -57,6 +57,7 @@ function htmlToMarkdown(html: string): string {
 
 export function SimpleWysiwyg({ value, onChange, placeholder, className }: SimpleWysiwygProps) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: {
