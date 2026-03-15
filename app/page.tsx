@@ -36,11 +36,12 @@ function AppShell() {
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
       {/* Top bar */}
       <header className="flex items-center justify-between border-b px-4 h-12 shrink-0 bg-background z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
-            <Github className="h-3.5 w-3.5 text-primary-foreground" />
+        <div className="flex items-center gap-3">
+          <img src="/logo.svg" alt="Restacked" className="h-6 w-6" />
+          <div className="flex flex-col leading-none">
+            <span className="text-sm font-semibold tracking-tight">restacked.ai</span>
+            <span className="text-xs text-muted-foreground">CXM</span>
           </div>
-          <span className="text-sm font-semibold tracking-tight">Context Manager</span>
           {isConnected && (
             <span className="hidden md:inline-flex items-center gap-1.5 text-xs text-muted-foreground border rounded-full px-2.5 py-0.5 ml-1">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />

@@ -122,6 +122,40 @@ const suggestions: Suggestion[] = [
     after:
       "## Contributing\n\n1. Fork the repository and create a feature branch: `git checkout -b feat/your-feature`\n2. Make your changes following the existing code style\n3. Write tests for new functionality\n4. Submit a pull request with a clear description\n\nAll PRs require at least one review before merging.",
   },
+
+  // Company.md (or COMPANY.md)
+  {
+    id: "co-1",
+    fileId: "Company.md",
+    type: "clarification",
+    summary: "Clarify the company stage and current milestones.",
+    detail:
+      "The document mentions 'Pre-MVP' but doesn't explain what that means in terms of timeline or deliverables. Adding specific milestones helps align the team on priorities.",
+    before: "Pre-MVP. Prototyping CXS as the first buildable component.",
+    after:
+      "**Stage:** Pre-MVP (Q1 2026)\n\n**Current milestone:** Prototyping CXS (Context Exchange Service) as the first buildable component. Target: working prototype by end of March.\n\n**Next milestone:** Internal dogfooding with 3 pilot teams by mid-April.",
+  },
+  {
+    id: "co-2",
+    fileId: "Company.md",
+    type: "addition",
+    summary: "Add a section on funding status and runway.",
+    detail:
+      "There is no information about the company's financial situation. Adding funding status helps team members understand resource constraints and hiring plans.",
+    after:
+      "## Funding & Runway\n\n- **Status:** Bootstrapped / Pre-seed\n- **Current runway:** 8 months at current burn rate\n- **Next raise:** Targeting seed round in Q3 2026 after MVP validation\n- **Hiring plan:** 1-2 engineers post-seed, focus on senior full-stack profiles",
+  },
+  {
+    id: "co-3",
+    fileId: "Company.md",
+    type: "change",
+    summary: "Expand the team section with roles and responsibilities.",
+    detail:
+      "The team list only shows names and titles. Adding specific responsibilities clarifies ownership and prevents confusion about who handles what.",
+    before: "- Leonardo: vibe coder\n- Tim: consultant and product manager\n- Egor: full stack dev",
+    after:
+      "## Team\n\n| Name | Role | Responsibilities |\n|---|---|---|\n| Leonardo | Technical Lead | Architecture decisions, core infrastructure, code quality |\n| Tim | Product & Strategy | Customer interviews, roadmap prioritization, business development |\n| Egor | Full-Stack Engineer | Feature development, UI/UX implementation, DevOps |",
+  },
 ]
 
 export function getSuggestionsForFile(fileName: string): Suggestion[] {
@@ -129,5 +163,5 @@ export function getSuggestionsForFile(fileName: string): Suggestion[] {
 }
 
 export function getAllMockFileNames(): string[] {
-  return ["BUSINESS-CONTEXT.md", "TECH-STACK.md", "README.md"]
+  return ["BUSINESS-CONTEXT.md", "TECH-STACK.md", "README.md", "Company.md"]
 }
