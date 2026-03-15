@@ -200,7 +200,7 @@ export function FileViewer() {
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleApplyReview}>
               <Check className="h-3.5 w-3.5" />
-              Apply & Continue Editing
+              Discard
             </Button>
             <Button 
               size="sm" 
@@ -212,7 +212,7 @@ export function FileViewer() {
               }}
             >
               <Save className="h-3.5 w-3.5" />
-              Save to GitHub
+              Update Context
             </Button>
           </div>
         </div>
