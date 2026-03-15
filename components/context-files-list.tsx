@@ -56,34 +56,32 @@ export function ContextFilesList() {
   return (
     <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
 
-      {/* New file + refresh row */}
-      <div className="px-3 pt-4 pb-2 flex items-center gap-1.5">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="flex-1 justify-start gap-2 h-9 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-accent font-normal"
-          onClick={() => setCreateOpen(true)}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          New file
-        </Button>
-      </div>
-
-      {/* Section label + refresh */}
-      <div className="px-4 pt-1 pb-1.5 flex items-center justify-between">
+      {/* Section label + actions */}
+      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
           Context Files
         </p>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground -mr-1"
-          onClick={fetchFiles}
-          disabled={isLoadingFiles}
-          title="Refresh"
-        >
-          <RefreshCw className={cn("h-3 w-3", isLoadingFiles && "animate-spin")} />
-        </Button>
+        <div className="flex items-center gap-0.5 -mr-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={() => setCreateOpen(true)}
+            title="New file"
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
+            onClick={fetchFiles}
+            disabled={isLoadingFiles}
+            title="Refresh"
+          >
+            <RefreshCw className={cn("h-3 w-3", isLoadingFiles && "animate-spin")} />
+          </Button>
+        </div>
       </div>
 
       {/* File list */}

@@ -32,12 +32,19 @@ interface GitHubContextType {
   fetchFiles: () => Promise<void>
   selectedFile: ContextFile | null
   selectFile: (file: ContextFile) => void
+  forceSelectFile: (file: ContextFile) => void
   fileContent: string
   isLoadingContent: boolean
 
   // Commit
   commitChanges: (content: string, message: string) => Promise<boolean>
   isCommitting: boolean
+
+  // Review mode (shared state for pending changes from suggestions)
+  isReviewMode: boolean
+  setIsReviewMode: (value: boolean) => void
+  pendingFileSelect: ContextFile | null
+  setPendingFileSelect: (file: ContextFile | null) => void
 
   // Error
   error: string | null
@@ -60,6 +67,8 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
   const [isLoadingContent, setIsLoadingContent] = useState(false)
   const [isCommitting, setIsCommitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isReviewMode, setIsReviewMode] = useState(false)
+  const [pendingFileSelect, setPendingFileSelect] = useState<ContextFile | null>(null)
 
   // Load persisted state on mount
   useEffect(() => {
@@ -174,6 +183,27 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
   }, [repo, token])
 
   const selectFile = useCallback(async (file: ContextFile) => {
+    // If in review mode, store pending and let FileViewer show dialog
+    if (isReviewMode) {
+      setPendingFileSelect(file)
+      return
+    }
+    setSelectedFile(file)
+    setIsLoadingContent(true)
+    setFileContent("")
+    try {
+      const content = await fetchFileContent(token, repo, file.path)
+      setFileContent(content)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load file.")
+    } finally {
+      setIsLoadingContent(false)
+    }
+  }, [token, repo, isReviewMode])
+
+  // Force select bypasses review mode check (used after user confirms discard)
+  const forceSelectFile = useCallback(async (file: ContextFile) => {
+    setPendingFileSelect(null)
     setSelectedFile(file)
     setIsLoadingContent(true)
     setFileContent("")
@@ -216,8 +246,9 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     <GitHubContext.Provider value={{
       token, setToken, user, isVerifying, verifyToken, disconnect,
       repo, setRepo, isConnectingRepo, connectRepo, repoConnected,
-      files, isLoadingFiles, fetchFiles, selectedFile, selectFile, fileContent, isLoadingContent,
+      files, isLoadingFiles, fetchFiles, selectedFile, selectFile, forceSelectFile, fileContent, isLoadingContent,
       commitChanges, isCommitting,
+      isReviewMode, setIsReviewMode, pendingFileSelect, setPendingFileSelect,
       error, clearError,
     }}>
       {children}

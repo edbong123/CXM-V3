@@ -25,7 +25,10 @@ import { cn } from "@/lib/utils"
 type Tab = "view" | "edit" | "suggestions" | "history"
 
 export function FileViewer() {
-  const { selectedFile, fileContent, isLoadingContent, commitChanges, isCommitting, token, repo } = useGitHub()
+  const { 
+    selectedFile, fileContent, isLoadingContent, commitChanges, isCommitting, token, repo,
+    isReviewMode, setIsReviewMode, pendingFileSelect, setPendingFileSelect, forceSelectFile
+  } = useGitHub()
 
   const [activeTab, setActiveTab] = useState<Tab>("view")
   const [editContent, setEditContent] = useState("")
@@ -34,8 +37,7 @@ export function FileViewer() {
   const [commitMessage, setCommitMessage] = useState("")
   const [isProcessing, setIsProcessing] = useState(false)
 
-  // Review mode state - shown after processing suggestions
-  const [isReviewMode, setIsReviewMode] = useState(false)
+  // Review mode content (shared isReviewMode state is in context)
   const [reviewContent, setReviewContent] = useState("")
   const [acceptedCount, setAcceptedCount] = useState(0)
 
@@ -110,34 +112,65 @@ export function FileViewer() {
     setAcceptedCount(0)
     setIsReviewMode(false)
     setActiveTab("view")
+    setPendingFileSelect(null)
     toast.info("Review discarded. Original file unchanged.")
   }
 
-  // State for discard confirmation dialog
-  const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
-  const [pendingNavigation, setPendingNavigation] = useState<{ type: "tab" | "file", value?: Tab } | null>(null)
+  // State for save/discard confirmation dialog
+  const [saveDiscardDialogOpen, setSaveDiscardDialogOpen] = useState(false)
+  const [pendingNavigation, setPendingNavigation] = useState<{ type: "tab", value?: Tab } | null>(null)
+
+  // Watch for pending file selections from sidebar clicks
+  useEffect(() => {
+    if (pendingFileSelect && isReviewMode) {
+      setSaveDiscardDialogOpen(true)
+    }
+  }, [pendingFileSelect, isReviewMode])
 
   const handleTabChange = (newTab: Tab) => {
     if (isReviewMode && newTab !== activeTab) {
       setPendingNavigation({ type: "tab", value: newTab })
-      setDiscardDialogOpen(true)
+      setSaveDiscardDialogOpen(true)
       return
     }
     setActiveTab(newTab)
   }
 
   const confirmDiscard = () => {
-    if (pendingNavigation?.type === "tab" && pendingNavigation.value) {
-      setActiveTab(pendingNavigation.value)
-    }
-    handleDiscardReview()
-    setDiscardDialogOpen(false)
+    const pendingFile = pendingFileSelect
+    // Clear review state
+    setReviewContent("")
+    setAcceptedCount(0)
+    setIsReviewMode(false)
+    setSaveDiscardDialogOpen(false)
     setPendingNavigation(null)
+    setPendingFileSelect(null)
+    // Handle the pending action
+    if (pendingFile) {
+      forceSelectFile(pendingFile)
+    } else if (pendingNavigation?.type === "tab" && pendingNavigation.value) {
+      setActiveTab(pendingNavigation.value)
+    } else {
+      setActiveTab("view")
+    }
+    toast.info("Changes discarded.")
   }
 
-  const cancelDiscard = () => {
-    setDiscardDialogOpen(false)
+  const confirmSave = () => {
+    // Apply review content and open commit dialog
+    setEditContent(reviewContent)
+    setIsDirty(true)
+    setIsReviewMode(false)
+    setCommitDialogOpen(true)
+    setSaveDiscardDialogOpen(false)
     setPendingNavigation(null)
+    setPendingFileSelect(null)
+  }
+
+  const cancelSaveDiscard = () => {
+    setSaveDiscardDialogOpen(false)
+    setPendingNavigation(null)
+    setPendingFileSelect(null)
   }
 
   const suggestions = selectedFile ? getSuggestionsForFile(selectedFile.name) : []
@@ -467,25 +500,32 @@ export function FileViewer() {
         </DialogContent>
       </Dialog>
 
-      {/* Discard review confirmation dialog */}
-      <Dialog open={discardDialogOpen} onOpenChange={setDiscardDialogOpen}>
+      {/* Save or discard confirmation dialog */}
+      <Dialog open={saveDiscardDialogOpen} onOpenChange={setSaveDiscardDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Discard Changes?</DialogTitle>
+            <DialogTitle>Unsaved Changes</DialogTitle>
             <DialogDescription>
-              You have unsaved changes from processed suggestions. Are you sure you want to discard them?
+              You have unsaved changes from processed suggestions. Would you like to save or discard them?
             </DialogDescription>
           </DialogHeader>
           <div className="flex gap-2 justify-end pt-2">
-            <Button variant="outline" size="sm" onClick={cancelDiscard}>
+            <Button variant="outline" size="sm" onClick={cancelSaveDiscard}>
               Cancel
             </Button>
             <Button
               size="sm"
-              variant="destructive"
+              variant="outline"
               onClick={confirmDiscard}
             >
-              Discard Changes
+              Discard
+            </Button>
+            <Button
+              size="sm"
+              onClick={confirmSave}
+            >
+              <Save className="h-3.5 w-3.5" />
+              Save
             </Button>
           </div>
         </DialogContent>
