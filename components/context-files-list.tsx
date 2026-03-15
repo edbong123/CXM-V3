@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo, RotateCw } from "lucide-react"
+import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo, RotateCw, MoreHorizontal, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,10 +10,16 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useGitHub } from "@/contexts/github-context"
-import { createFile } from "@/lib/github-client"
+import { createFile, deleteFile } from "@/lib/github-client"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
 
@@ -28,6 +34,22 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
   const [createOpen, setCreateOpen] = useState(false)
   const [newFileName, setNewFileName] = useState("")
   const [isCreating, setIsCreating] = useState(false)
+  const [deletingPath, setDeletingPath] = useState<string | null>(null)
+
+  const handleDelete = async (file: { name: string; path: string; sha: string }) => {
+    if (!token || !repo) return
+    setDeletingPath(file.path)
+    try {
+      await deleteFile(token, repo, file.path, file.sha, `Delete ${file.name}`)
+      toast.success(`${file.name.replace(/\.md$/, "")} deleted`)
+      if (selectedFile?.path === file.path) selectFile(null as any)
+      await fetchFiles()
+    } catch (e: any) {
+      toast.error(`Failed to delete: ${e.message}`)
+    } finally {
+      setDeletingPath(null)
+    }
+  }
 
   const handleCreate = async () => {
     const name = newFileName.trim().replace(/[^a-zA-Z0-9._-]/g, "-")
@@ -150,27 +172,56 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
             {sortedFiles.map((file) => {
               const isSelected = selectedFile?.path === file.path
               const displayName = file.name.replace(/\.md$/, "")
+              const isDeleting = deletingPath === file.path
 
               return (
-                <button
+                <div
                   key={file.path}
-                  onClick={() => {
-                    selectFile(file)
-                    onFileSelect?.()
-                  }}
                   className={cn(
-                    "w-full flex items-center gap-2.5 rounded-md px-3 py-1.5 text-left transition-colors",
+                    "group flex items-center rounded-md transition-colors",
                     isSelected
                       ? "bg-accent text-accent-foreground"
                       : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
                   )}
                 >
-                  <FileText className={cn(
-                    "h-3.5 w-3.5 shrink-0",
-                    isSelected ? "text-primary" : "text-muted-foreground/60"
-                  )} />
-                  <span className="text-sm truncate">{displayName}</span>
-                </button>
+                  <button
+                    onClick={() => {
+                      selectFile(file)
+                      onFileSelect?.()
+                    }}
+                    className="flex-1 flex items-center gap-2.5 px-3 py-1.5 text-left min-w-0"
+                  >
+                    <FileText className={cn(
+                      "h-3.5 w-3.5 shrink-0",
+                      isSelected ? "text-primary" : "text-muted-foreground/60"
+                    )} />
+                    <span className="text-sm truncate">{displayName}</span>
+                  </button>
+
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className="shrink-0 mr-1.5 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                        onClick={e => e.stopPropagation()}
+                      >
+                        {isDeleting
+                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                          : <MoreHorizontal className="h-3.5 w-3.5" />
+                        }
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-36">
+                      <DropdownMenuItem
+                        className="text-destructive focus:text-destructive gap-2"
+                        onClick={() => handleDelete(file)}
+                        disabled={isDeleting}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               )
             })}
           </div>

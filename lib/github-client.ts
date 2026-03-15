@@ -114,6 +114,24 @@ export async function createFile(
   return { sha: data.content.sha }
 }
 
+export async function deleteFile(
+  token: string,
+  repo: string,
+  path: string,
+  sha: string,
+  message: string
+): Promise<void> {
+  const res = await fetch(`${BASE}/repos/${repo}/contents/${path}`, {
+    method: "DELETE",
+    headers: { ...headers(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ message, sha }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message || `Delete failed: ${res.statusText}`)
+  }
+}
+
 export interface CommitInfo {
   sha: string
   message: string
