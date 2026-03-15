@@ -331,18 +331,6 @@ export function ChatView({ onClose, initialFile }: ChatViewProps) {
               </Button>
             </div>
           </div>
-
-          {/* Back to files button */}
-          <div className="flex justify-center mt-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              className="text-muted-foreground hover:text-foreground text-xs"
-            >
-              Back to files
-            </Button>
-          </div>
         </div>
       </div>
     </div>
