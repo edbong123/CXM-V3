@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useCallback } from "react"
-import { ChevronDown, ChevronUp, Check, X, Clock, Sparkles, Loader2 } from "lucide-react"
+import { ChevronDown, Check, X, Clock, Sparkles, Loader2, Plus, PenLine, HelpCircle, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useGitHub } from "@/contexts/github-context"
@@ -14,10 +14,27 @@ interface SuggestionsPanelProps {
   isProcessing: boolean
 }
 
-const TYPE_CONFIG = {
-  enhancement: { label: "Enhancement", className: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800" },
-  addition: { label: "Addition", className: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800" },
-  clarification: { label: "Clarification", className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800" },
+const TYPE_CONFIG: Record<Suggestion["type"], { label: string; icon: React.ElementType; className: string }> = {
+  change: { 
+    label: "Change", 
+    icon: PenLine, 
+    className: "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800" 
+  },
+  addition: { 
+    label: "Addition", 
+    icon: Plus, 
+    className: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800" 
+  },
+  clarification: { 
+    label: "Clarification", 
+    icon: HelpCircle, 
+    className: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800" 
+  },
+  other: { 
+    label: "Other", 
+    icon: MoreHorizontal, 
+    className: "bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-950/40 dark:text-gray-400 dark:border-gray-800" 
+  },
 }
 
 export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcessing }: SuggestionsPanelProps) {
@@ -48,9 +65,10 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
   const acceptedIds = allSuggestions.filter((s) => statuses[s.id] === "accepted").map((s) => s.id)
   const deferredCount = allSuggestions.filter((s) => statuses[s.id] === "later").length
 
-  const handleIncorporate = async () => {
+  const handleProcessSuggestions = async () => {
     onProcessingChange(true)
-    // Simulate AI processing (3 seconds)
+    
+    // Show processing alert for 3 seconds
     await new Promise((r) => setTimeout(r, 3000))
 
     const accepted = allSuggestions.filter((s) => statuses[s.id] === "accepted")
@@ -114,7 +132,7 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
         </div>
       )}
 
-      {/* Suggestions list */}
+      {/* Suggestions list - change tracking style */}
       <div className="flex-1 overflow-y-auto">
         {visibleSuggestions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2 text-center px-6">
@@ -122,7 +140,7 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
             <p className="text-sm font-medium">All suggestions reviewed</p>
             <p className="text-sm text-muted-foreground">
               {acceptedIds.length > 0
-                ? `${acceptedIds.length} accepted. Click "Incorporate Changes" below.`
+                ? `${acceptedIds.length} accepted. Click "Process Suggestions" below.`
                 : "No suggestions were accepted."}
             </p>
           </div>
@@ -143,22 +161,22 @@ export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcess
         )}
       </div>
 
-      {/* Footer */}
+      {/* Footer with Process button */}
       <div className="border-t px-4 py-3 bg-background">
         <Button
           className="w-full"
-          onClick={handleIncorporate}
+          onClick={handleProcessSuggestions}
           disabled={acceptedIds.length === 0 || isProcessing}
         >
           {isProcessing ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Incorporating changes...
+              Processing...
             </>
           ) : (
             <>
               <Sparkles className="h-4 w-4" />
-              Incorporate Changes
+              Process Suggestions
               {acceptedIds.length > 0 && (
                 <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs bg-primary-foreground/20 text-primary-foreground">
                   {acceptedIds.length}
@@ -188,82 +206,99 @@ function SuggestionCard({
   onDefer: () => void
 }) {
   const typeConfig = TYPE_CONFIG[suggestion.type]
+  const TypeIcon = typeConfig.icon
 
   return (
-    <div className="p-4 flex flex-col gap-3">
-      {/* Header */}
-      <div className="flex items-start gap-2">
-        <Badge variant="outline" className={cn("text-xs font-medium shrink-0 mt-0.5", typeConfig.className)}>
-          {typeConfig.label}
-        </Badge>
-        <p className="text-sm font-medium leading-snug">{suggestion.title}</p>
-      </div>
-
-      {/* Description */}
-      <p className="text-sm text-muted-foreground leading-relaxed">{suggestion.description}</p>
-
-      {/* Diff toggle */}
+    <div className="flex flex-col">
+      {/* Collapsed header - always visible */}
       <button
         onClick={onToggleExpand}
-        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors w-fit"
+        className="flex items-start gap-3 p-4 w-full text-left hover:bg-muted/50 transition-colors"
       >
-        {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-        {isExpanded ? "Hide diff" : "Show diff"}
+        {/* Type indicator */}
+        <div className={cn(
+          "shrink-0 h-6 w-6 rounded flex items-center justify-center mt-0.5",
+          typeConfig.className.replace("border-", "bg-").replace("text-", "text-")
+        )}>
+          <TypeIcon className="h-3.5 w-3.5" />
+        </div>
+        
+        {/* Summary and type */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <Badge variant="outline" className={cn("text-xs font-medium shrink-0", typeConfig.className)}>
+              {typeConfig.label}
+            </Badge>
+          </div>
+          <p className="text-sm leading-snug">{suggestion.summary}</p>
+        </div>
+
+        {/* Expand indicator */}
+        <ChevronDown className={cn(
+          "h-4 w-4 shrink-0 text-muted-foreground transition-transform mt-1",
+          isExpanded && "rotate-180"
+        )} />
       </button>
 
-      {/* Diff */}
+      {/* Expanded content */}
       {isExpanded && (
-        <div className="flex flex-col gap-2 text-xs font-mono rounded-md overflow-hidden border">
-          {suggestion.before && (
-            <div className="bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-800">
-              <div className="px-3 py-1.5 text-red-700 dark:text-red-400 font-sans text-xs font-medium border-b border-red-200 dark:border-red-800 bg-red-100/50 dark:bg-red-950/50">
-                Current
+        <div className="px-4 pb-4 pl-[52px] flex flex-col gap-3">
+          {/* Detail description */}
+          <p className="text-sm text-muted-foreground leading-relaxed">{suggestion.detail}</p>
+
+          {/* Diff view */}
+          <div className="flex flex-col gap-0 text-xs font-mono rounded-md overflow-hidden border">
+            {suggestion.before && (
+              <div className="bg-red-50 dark:bg-red-950/30 border-b border-red-200 dark:border-red-800">
+                <div className="px-3 py-1.5 text-red-700 dark:text-red-400 font-sans text-xs font-medium border-b border-red-200 dark:border-red-800 bg-red-100/50 dark:bg-red-950/50">
+                  Current
+                </div>
+                <pre className="px-3 py-2.5 text-red-800 dark:text-red-300 whitespace-pre-wrap leading-relaxed">
+                  {suggestion.before}
+                </pre>
               </div>
-              <pre className="px-3 py-2.5 text-red-800 dark:text-red-300 whitespace-pre-wrap leading-relaxed">
-                {suggestion.before}
+            )}
+            <div className="bg-emerald-50 dark:bg-emerald-950/30">
+              <div className="px-3 py-1.5 text-emerald-700 dark:text-emerald-400 font-sans text-xs font-medium border-b border-emerald-200 dark:border-emerald-800 bg-emerald-100/50 dark:bg-emerald-950/50">
+                Proposed
+              </div>
+              <pre className="px-3 py-2.5 text-emerald-800 dark:text-emerald-300 whitespace-pre-wrap leading-relaxed">
+                {suggestion.after}
               </pre>
             </div>
-          )}
-          <div className="bg-emerald-50 dark:bg-emerald-950/30">
-            <div className="px-3 py-1.5 text-emerald-700 dark:text-emerald-400 font-sans text-xs font-medium border-b border-emerald-200 dark:border-emerald-800 bg-emerald-100/50 dark:bg-emerald-950/50">
-              Proposed
-            </div>
-            <pre className="px-3 py-2.5 text-emerald-800 dark:text-emerald-300 whitespace-pre-wrap leading-relaxed">
-              {suggestion.after}
-            </pre>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              onClick={(e) => { e.stopPropagation(); onAccept() }}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-8"
+            >
+              <Check className="h-3.5 w-3.5" />
+              Accept
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => { e.stopPropagation(); onDefer() }}
+              className="flex-1 h-8"
+            >
+              <Clock className="h-3.5 w-3.5" />
+              Later
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={(e) => { e.stopPropagation(); onReject() }}
+              className="flex-1 h-8 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
+            >
+              <X className="h-3.5 w-3.5" />
+              Discard
+            </Button>
           </div>
         </div>
       )}
-
-      {/* Actions */}
-      <div className="flex items-center gap-2">
-        <Button
-          size="sm"
-          onClick={onAccept}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white h-8"
-        >
-          <Check className="h-3.5 w-3.5" />
-          Accept
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onDefer}
-          className="flex-1 h-8"
-        >
-          <Clock className="h-3.5 w-3.5" />
-          Later
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={onReject}
-          className="flex-1 h-8 text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
-        >
-          <X className="h-3.5 w-3.5" />
-          Reject
-        </Button>
-      </div>
     </div>
   )
 }
