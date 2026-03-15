@@ -190,7 +190,7 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
               <div className="flex items-center gap-1">
                 <span className="text-sm text-muted-foreground font-mono">context/</span>
                 <Input
-                  placeholder="my-context.md"
+                  placeholder="my-context"
                   value={newFileName}
                   onChange={(e) => setNewFileName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleCreate()}
