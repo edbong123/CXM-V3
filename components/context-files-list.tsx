@@ -35,7 +35,9 @@ interface ContextFilesListProps {
 }
 
 export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAddProject, onOpenProjectSettings }: ContextFilesListProps) {
-  const { files, llmsFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, activeProject } = useGitHub()
+  const { contextFiles = [], isLoading: isLoadingFiles, refreshFiles, selectedFile, selectFile, token, activeProject } = useGitHub()
+  const files = contextFiles
+  const llmsFile = contextFiles.find(f => f.name === 'llms.txt') || null
   const repo = activeProject?.repo || ""
   const { getSuggestionsForFile: getContextSuggestions } = useSuggestions()
 
@@ -57,7 +59,7 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
       await deleteFile(token, repo, file.path, file.sha, `Delete ${file.name}`)
       toast.success(`${file.name.replace(/\.md$/, "")} deleted`)
       if (selectedFile?.path === file.path) selectFile(null as any)
-      await fetchFiles()
+      await refreshFiles()
     } catch (e: any) {
       toast.error(`Failed to delete: ${e.message}`)
     } finally {
@@ -72,7 +74,7 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
     setIsCreating(true)
     try {
       await createFile(token, repo, `context/${fileName}`, `# ${fileName.replace(".md", "")}\n\n`, `docs: create ${fileName}`)
-      await fetchFiles()
+      await refreshFiles()
       setCreateOpen(false)
       setNewFileName("")
       toast.success(`Created ${fileName}`)
@@ -83,8 +85,8 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
     }
   }
 
-  // Files displayed in order as provided
-  const sortedFiles = files
+  // Files displayed in order as provided (default to empty array)
+  const sortedFiles = files || []
 
   return (
     <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
@@ -159,7 +161,7 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-            onClick={fetchFiles}
+            onClick={refreshFiles}
             disabled={isLoadingFiles}
             title="Refresh"
           >
