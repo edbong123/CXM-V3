@@ -1,4 +1,4 @@
-INSTRUCTIONS
+**INSTRUCTIONS**
 
 - project instruction for Claude
 
@@ -8,7 +8,7 @@ INSTRUCTIONS
 
 - Make a doc to define process and way to collaborate.
 
-FEATURES
+**FEATURES**
 
 1. Validate files
 
