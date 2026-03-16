@@ -3,7 +3,7 @@
 
 Restacked is a context orchestration platform for AI-assisted development teams. The core problem it solves: AI tools have no memory. Every session starts blank. Every team member re-explains the same context inconsistently. Outputs are generic, wrong, or contradict what was built last week.
 
-Having context is not the solution. You can have too much, too little, or the wrong kind. The real problem is context orchestration — knowing what context to bring into a prompt, when, from which source, and in what form. Restacked is the infrastructure that solves this: structured, versioned, automatically served context delivered to every AI tool every team member uses.
+Having context is not the solution. You can have too much, too little, or the wrong kind. The real problem is context orchestration -- knowing what context to bring into a prompt, when, from which source, and in what form. Restacked is the infrastructure that solves this: structured, versioned, automatically served context delivered to every AI tool every team member uses.
 
 ## Who are the users and who makes the purchase decision
 
@@ -14,19 +14,11 @@ This project has a unique characteristic: the team building Restacked is also th
 - The team validates the product by using it in their own daily work
 - Context files for Restacked are produced by the same process Restacked is designed to support
 
-The purchase decision model for external customers is still being defined. The likely buyer is a vibe coding consultant or dev team lead — someone who controls the tools their team uses and who feels the pain of context inconsistency directly.
+The purchase decision model for external customers is still being defined. See OPEN-QUESTIONS.md. For persona definitions, see GLOSSARY.md.
 
 ## What the team looks like
 
-The team covers all four roles required for AI-assisted development:
-
-**Logic Builder** — owns data models, business logic, auth, infrastructure. Owns the production rewrite step. Never deploys prototype code. Responsible for schema, TypeScript interfaces, and the abstraction layer.
-
-**Experience Builder** — builds everything users see using vibe coding tools (Lovable, v0). Works in prototype mode. Output quality is directly proportional to context quality. Never makes backend architecture decisions.
-
-**Domain Expert** — the human source of truth for how AI-assisted development actually works in practice. Their knowledge of workflows, edge cases, and team dynamics is the core asset. Must be translated into context files — not left in their head or in Slack.
-
-**Context Maintainer** — owns context quality across all tiers. Translates knowledge produced in sessions into structured context files before the next development session. Never nobody's job.
+The team covers all four roles required for AI-assisted development. For full role definitions, see ROLES.md.
 
 ## Pain points we are solving from direct experience
 
@@ -35,27 +27,27 @@ The team covers all four roles required for AI-assisted development:
 - Domain knowledge living in Slack threads and meeting notes, never reaching the model
 - Experience Builder making backend architecture decisions inside frontend sessions
 - No way to enforce workflow rules across the team without relying on discipline
-- Switching AI tools means starting from zero — no shared foundation
+- Switching AI tools means starting from zero -- no shared foundation
 - Non-technical team members unable to contribute knowledge without touching GitHub
 - Context drifting silently as the codebase evolves
 
 ## What success looks like
 
-The team uses Restacked to build Restacked. Every AI session — whether in Cursor, Lovable, Claude, or v0 — starts with the right context already loaded. No manual re-explanation. No context drift. The prototype/production workflow is enforced by the system, not by discipline.
+The team uses Restacked to build Restacked. Every AI session -- whether in Cursor, Lovable, Claude, or v0 -- starts with the right context already loaded. No manual re-explanation. No context drift. The prototype/production workflow is enforced by the system, not by discipline.
 
 Externally: a consultant using Restacked delivers their second client in a vertical faster than the first. Their third faster than the second. Retainer replaces project billing.
 
 ## Reference tools and what we learn from them
 
-**GitMCP** — solves context delivery via MCP endpoints from GitHub repos. Proves the model works. Does not solve context generation, knowledge translation, or governance. Our delivery layer builds on this pattern.
+**GitMCP** -- solves context delivery via MCP endpoints from GitHub repos. Proves the model works. Does not solve context generation, knowledge translation, or governance. Our delivery layer builds on this pattern.
 
-**DecapCMS** — inspiration for the CMS: GitHub as the store, clean UI for non-technical contributors without touching Git.
+**DecapCMS** -- inspiration for the CMS: GitHub as the store, clean UI for non-technical contributors without touching Git.
 
-**Claude Projects** — proves shared context improves team output consistency. Manual uploads required. Drift over time. We solve both.
+**Claude Projects** -- proves shared context improves team output consistency. Manual uploads required. Drift over time. We solve both.
 
-**Cursor rules** — confirms plain markdown files in a versioned store are the right primitive.
+**Cursor rules** -- confirms plain markdown files in a versioned store are the right primitive.
 
-**Linear** — reference for how developer tooling earns daily habit. Fast, opinionated, low friction.
+**Linear** -- reference for how developer tooling earns daily habit. Fast, opinionated, low friction.
 
 ## What we are not building (for now)
 
