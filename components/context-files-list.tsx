@@ -186,18 +186,9 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
             <span className="text-sm">Loading...</span>
           </div>
-        ) : sortedFiles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-10 px-5 text-center gap-3">
-            <FileText className="h-7 w-7 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground leading-snug">No files found in context/</p>
-            <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-              <Plus className="h-3.5 w-3.5" />
-              New file
-            </Button>
-          </div>
         ) : (
           <div className="flex flex-col px-2 pb-3">
-            {/* llms.txt file (if exists) */}
+            {/* llms.txt file (if exists) - always shown at top */}
             {llmsFile && (
               <div
                 className={cn(
@@ -244,7 +235,17 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
             )}
 
             {/* Context files */}
-            {sortedFiles.map((file) => {
+            {sortedFiles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 px-5 text-center gap-3 mt-4">
+                <FileText className="h-7 w-7 text-muted-foreground/30" />
+                <p className="text-sm text-muted-foreground leading-snug">No files found in context/</p>
+                <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+                  <Plus className="h-3.5 w-3.5" />
+                  New file
+                </Button>
+              </div>
+            ) : (
+              sortedFiles.map((file) => {
               const isSelected = selectedFile?.path === file.path
               const displayName = file.name.replace(/\.md$/, "")
               const isDeleting = deletingPath === file.path
