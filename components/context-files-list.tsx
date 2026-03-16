@@ -1,183 +1,170 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo, RotateCw, MoreHorizontal, Trash2, Settings } from "lucide-react"
-import { ProjectSelector } from "./project-selector"
+import { cn } from "@/lib/utils"
+import { useGitHub } from "@/contexts/github-context"
+import { useSuggestions } from "@/contexts/suggestions-context"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useGitHub } from "@/contexts/github-context"
-import { useSuggestions } from "@/contexts/suggestions-context"
+import { Loader2, Plus, FileText, MoreHorizontal, Trash2, RefreshCw } from "lucide-react"
 import { createFile, deleteFile, fetchLlmsTxt } from "@/lib/github-client"
-import { getSuggestionsForFile as getMockSuggestionsForFile } from "@/lib/mock-suggestions"
-import { cn } from "@/lib/utils"
-import { toast } from "sonner"
 
 interface ContextFilesListProps {
-  onNewChat: () => void
+  onNewChat?: () => void
   onFileSelect?: () => void
-  onOpenSettings: () => void
-  onAddProject: () => void
-  onOpenProjectSettings: (projectId: string) => void
+  onOpenSettings?: () => void
+  onAddProject?: () => void
+  onOpenProjectSettings?: () => void
 }
 
-export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAddProject, onOpenProjectSettings }: ContextFilesListProps) {
+export function ContextFilesList({
+  onNewChat,
+  onFileSelect,
+  onOpenSettings,
+  onAddProject,
+  onOpenProjectSettings,
+}: ContextFilesListProps) {
   const { contextFiles = [], isLoading: isLoadingFiles, refreshFiles, selectedFile, selectFile, token, activeProject } = useGitHub()
-  const files = contextFiles
   const [llmsFile, setLlmsFile] = useState<any>(null)
+  const [deletingPath, setDeletingPath] = useState<string | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const [newFileName, setNewFileName] = useState("")
   const repo = activeProject?.repo || ""
   const { getSuggestionsForFile: getContextSuggestions } = useSuggestions()
 
   // Load llms.txt on mount and when repo changes
   useEffect(() => {
     if (token && repo) {
-      fetchLlmsTxt(token, repo).then(file => setLlmsFile(file || null)).catch(() => setLlmsFile(null))
+      fetchLlmsTxt(token, repo)
+        .then(file => setLlmsFile(file || null))
+        .catch(() => setLlmsFile(null))
     } else {
       setLlmsFile(null)
     }
   }, [token, repo])
 
+  const sortedFiles = contextFiles
+
   const getSuggestionCount = (fileName: string) => {
-    const name = fileName.replace(/\.md$/, "")
-    // Only count pending suggestions (not rejected/later)
-    return getMockSuggestionsForFile(name).length + getContextSuggestions(name, ["pending"]).length
+    const suggestions = getContextSuggestions(fileName)
+    return suggestions?.length || 0
   }
 
-  const [createOpen, setCreateOpen] = useState(false)
-  const [newFileName, setNewFileName] = useState("")
-  const [isCreating, setIsCreating] = useState(false)
-  const [deletingPath, setDeletingPath] = useState<string | null>(null)
-
-  const handleDelete = async (file: { name: string; path: string; sha: string }) => {
+  const handleDelete = async (file: any) => {
     if (!token || !repo) return
     setDeletingPath(file.path)
     try {
-      await deleteFile(token, repo, file.path, file.sha, `Delete ${file.name}`)
-      toast.success(`${file.name.replace(/\.md$/, "")} deleted`)
-      if (selectedFile?.path === file.path) selectFile(null as any)
+      await deleteFile(token, repo, file.path)
       await refreshFiles()
-    } catch (e: any) {
-      toast.error(`Failed to delete: ${e.message}`)
     } finally {
       setDeletingPath(null)
     }
   }
 
-  const handleCreate = async () => {
-    const name = newFileName.trim().replace(/[^a-zA-Z0-9._-]/g, "-")
-    if (!name) return
-    const fileName = name.endsWith(".md") ? name : `${name}.md`
-    setIsCreating(true)
+  const handleCreateFile = async () => {
+    if (!newFileName.trim() || !token || !repo) return
+    const fileName = newFileName.endsWith(".md") ? newFileName : `${newFileName}.md`
     try {
-      await createFile(token, repo, `context/${fileName}`, `# ${fileName.replace(".md", "")}\n\n`, `docs: create ${fileName}`)
-      await refreshFiles()
-      setCreateOpen(false)
+      await createFile(token, repo, `context/${fileName}`, "")
       setNewFileName("")
-      toast.success(`Created ${fileName}`)
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to create file.")
-    } finally {
-      setIsCreating(false)
+      setCreateOpen(false)
+      await refreshFiles()
+    } catch (err) {
+      console.error("Failed to create file:", err)
     }
   }
 
-  // Files displayed in order as provided (default to empty array)
-  const sortedFiles = files || []
-
   return (
-    <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
-
-      {/* Project Selector */}
-      <ProjectSelector onOpenSettings={onOpenSettings} onAddProject={onAddProject} onOpenProjectSettings={onOpenProjectSettings} />
-
-      {/* New Chat button */}
-      <div className="px-2 pt-3 pb-1">
-        <Button
-          variant="ghost"
-          className="w-full justify-start gap-2 h-8 text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground font-normal px-3"
-          onClick={onNewChat}
-        >
-          <MessageCircle className="h-3.5 w-3.5" />
-          New Chat
-        </Button>
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border/50">
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Context Files</span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => refreshFiles()}
+            disabled={isLoadingFiles}
+          >
+            <RefreshCw className={cn("h-3.5 w-3.5", isLoadingFiles && "animate-spin")} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7"
+            onClick={() => setCreateOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
-      {/* llms.txt - always at top */}
+      {/* LLMS File - Separate section above context files */}
       {llmsFile && (
-        <div className="px-2 pb-1">
-          <div className="flex items-center gap-2 rounded-md px-1 py-1.5 hover:bg-accent/40 transition-colors group">
+        <div className="px-2 py-3 border-b border-border/30">
+          <div
+            className={cn(
+              "group flex items-center rounded-md transition-colors",
+              selectedFile?.path === llmsFile.path
+                ? "bg-accent text-accent-foreground"
+                : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
+            )}
+          >
             <button
               onClick={() => {
                 selectFile(llmsFile)
                 onFileSelect?.()
               }}
-              className={cn(
-                "flex-1 flex items-center gap-2.5 rounded-md px-2 py-1 text-left transition-colors",
-                selectedFile?.path === llmsFile.path
-                  ? "bg-accent text-accent-foreground"
-                  : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
-              )}
+              className="flex-1 flex items-center gap-2.5 px-3 py-1.5 text-left min-w-0"
             >
-              <ListTodo className={cn(
-                "h-3.5 w-3.5 shrink-0",
-                selectedFile?.path === llmsFile.path ? "text-primary" : "text-muted-foreground/60"
-              )} />
+              <FileText
+                className={cn(
+                  "h-3.5 w-3.5 shrink-0",
+                  selectedFile?.path === llmsFile.path ? "text-primary" : "text-muted-foreground/60"
+                )}
+              />
               <span className="text-sm truncate font-medium">LLMS</span>
             </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                // Update action will be defined later
-              }}
-              className="rounded p-1 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
-              title="Update llms.txt"
-            >
-              <RotateCw className="h-3.5 w-3.5" />
-            </button>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="shrink-0 mr-1.5 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                  onClick={e => e.stopPropagation()}
+                >
+                  {deletingPath === llmsFile.path ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleDelete(llmsFile)}>
+                  <Trash2 className="h-3.5 w-3.5 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       )}
-
-      {/* Context Files Header */}
-      <div className="px-3 pt-3 pb-1 flex items-center justify-between">
-        <p className="text-xs font-semibold text-muted-foreground/60 uppercase tracking-wider">
-          Context Files
-        </p>
-        <div className="flex items-center gap-0.5 -mr-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-            onClick={() => setCreateOpen(true)}
-            title="New file"
-          >
-            <Plus className="h-3 w-3" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-            onClick={refreshFiles}
-            disabled={isLoadingFiles}
-            title="Refresh"
-          >
-            <RefreshCw className={cn("h-3 w-3", isLoadingFiles && "animate-spin")} />
-          </Button>
-        </div>
-      </div>
 
       {/* File list */}
       <div className="flex-1 overflow-y-auto">
@@ -186,72 +173,24 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
             <span className="text-sm">Loading...</span>
           </div>
+        ) : sortedFiles.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-10 px-5 text-center gap-3">
+            <FileText className="h-7 w-7 text-muted-foreground/30" />
+            <p className="text-sm text-muted-foreground leading-snug">No files found in context/</p>
+            <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
+              <Plus className="h-3.5 w-3.5" />
+              New file
+            </Button>
+          </div>
         ) : (
           <div className="flex flex-col px-2 pb-3">
-            {/* llms.txt file (if exists) - always shown at top */}
-            {llmsFile && (
-              <div
-                className={cn(
-                  "group flex items-center rounded-md transition-colors",
-                  selectedFile?.path === llmsFile.path
-                    ? "bg-accent text-accent-foreground"
-                    : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
-                )}
-              >
-                <button
-                  onClick={() => {
-                    selectFile(llmsFile)
-                    onFileSelect?.()
-                  }}
-                  className="flex-1 flex items-center gap-2.5 px-3 py-1.5 text-left min-w-0"
-                >
-                  <FileText className={cn(
-                    "h-3.5 w-3.5 shrink-0",
-                    selectedFile?.path === llmsFile.path ? "text-primary" : "text-muted-foreground/60"
-                  )} />
-                  <span className="text-sm truncate font-medium">LLMS</span>
-                </button>
+            {sortedFiles.map((file) => {
+              const isSelected = selectedFile?.path === file.path
+              const displayName = file.name.replace(/\.md$/, "")
+              const isDeleting = deletingPath === file.path
+              const suggestionCount = getSuggestionCount(file.name)
 
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      className="shrink-0 mr-1.5 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      {deletingPath === llmsFile.path
-                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                        : <MoreHorizontal className="h-3.5 w-3.5" />
-                      }
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => handleDelete(llmsFile)}>
-                      <Trash2 className="h-3.5 w-3.5 mr-2" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )}
-
-            {/* Context files */}
-            {sortedFiles.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-10 px-5 text-center gap-3 mt-4">
-                <FileText className="h-7 w-7 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground leading-snug">No files found in context/</p>
-                <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
-                  <Plus className="h-3.5 w-3.5" />
-                  New file
-                </Button>
-              </div>
-            ) : (
-              sortedFiles.map((file) => {
-                const isSelected = selectedFile?.path === file.path
-                const displayName = file.name.replace(/\.md$/, "")
-                const isDeleting = deletingPath === file.path
-                const suggestionCount = getSuggestionCount(file.name)
-
-                return (
+              return (
                 <div
                   key={file.path}
                   className={cn(
@@ -268,20 +207,24 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
                     }}
                     className="flex-1 flex items-center gap-2.5 px-3 py-1.5 text-left min-w-0"
                   >
-                    <FileText className={cn(
-                      "h-3.5 w-3.5 shrink-0",
-                      isSelected ? "text-primary" : "text-muted-foreground/60"
-                    )} />
+                    <FileText
+                      className={cn(
+                        "h-3.5 w-3.5 shrink-0",
+                        isSelected ? "text-primary" : "text-muted-foreground/60"
+                      )}
+                    />
                     <span className="text-sm truncate">{displayName}</span>
                   </button>
 
                   {suggestionCount > 0 && (
-                    <span className={cn(
-                      "shrink-0 mr-1 text-xs font-medium tabular-nums px-1.5 py-0.5 rounded-full",
-                      isSelected
-                        ? "bg-primary/20 text-primary"
-                        : "bg-muted text-muted-foreground group-hover:bg-accent-foreground/10"
-                    )}>
+                    <span
+                      className={cn(
+                        "shrink-0 mr-1 text-xs font-medium tabular-nums px-1.5 py-0.5 rounded-full",
+                        isSelected
+                          ? "bg-primary/20 text-primary"
+                          : "bg-muted text-muted-foreground group-hover:bg-accent-foreground/10"
+                      )}
+                    >
                       {suggestionCount}
                     </span>
                   )}
@@ -290,67 +233,50 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
                     <DropdownMenuTrigger asChild>
                       <button
                         className="shrink-0 mr-1.5 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
-                        onClick={e => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        {isDeleting
-                          ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          : <MoreHorizontal className="h-3.5 w-3.5" />
-                        }
+                        {isDeleting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <MoreHorizontal className="h-3.5 w-3.5" />
+                        )}
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-36">
-                      <DropdownMenuItem
-                        className="text-destructive focus:text-destructive gap-2"
-                        onClick={() => handleDelete(file)}
-                        disabled={isDeleting}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleDelete(file)}>
+                        <Trash2 className="h-3.5 w-3.5 mr-2" />
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                );
-              })
-            )}
+              )
+            })}
           </div>
         )}
       </div>
 
       {/* Create file dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>New Context File</DialogTitle>
-            <DialogDescription>Creates a new markdown file in the context/ folder.</DialogDescription>
+            <DialogTitle>Create New File</DialogTitle>
+            <DialogDescription>Enter a name for the new context file</DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-3 pt-1">
-            <div className="flex flex-col gap-1.5">
-              <Label>File name</Label>
-              <div className="flex items-center gap-1">
-                <span className="text-sm text-muted-foreground font-mono">context/</span>
-                <Input
-                  placeholder="my-context"
-                  value={newFileName}
-                  onChange={(e) => setNewFileName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-                  className="font-mono text-sm"
-                  autoFocus
-                />
-              </div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Button variant="outline" size="sm" onClick={() => { setCreateOpen(false); setNewFileName("") }}>
-                Cancel
-              </Button>
-              <Button size="sm" onClick={handleCreate} disabled={!newFileName.trim() || isCreating}>
-                {isCreating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
-                Create File
-              </Button>
-            </div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="filename"
+              value={newFileName}
+              onChange={(e) => setNewFileName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleCreateFile()
+              }}
+              autoFocus
+            />
+            <Button onClick={handleCreateFile}>Create</Button>
           </div>
         </DialogContent>
       </Dialog>
-    </aside>
+    </div>
   )
 }
