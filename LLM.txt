@@ -1,0 +1,3 @@
+# LLM Context
+
+This file serves as the main context for AI analysis.
