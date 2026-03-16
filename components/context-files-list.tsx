@@ -188,6 +188,53 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
           </div>
         ) : (
           <div className="flex flex-col px-2 pb-3">
+            {/* llms.txt file (if exists) */}
+            {llmsFile && (
+              <div
+                className={cn(
+                  "group flex items-center rounded-md transition-colors",
+                  selectedFile?.path === llmsFile.path
+                    ? "bg-accent text-accent-foreground"
+                    : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
+                )}
+              >
+                <button
+                  onClick={() => {
+                    selectFile(llmsFile)
+                    onFileSelect?.()
+                  }}
+                  className="flex-1 flex items-center gap-2.5 px-3 py-1.5 text-left min-w-0"
+                >
+                  <FileText className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    selectedFile?.path === llmsFile.path ? "text-primary" : "text-muted-foreground/60"
+                  )} />
+                  <span className="text-sm truncate font-medium">llms.txt</span>
+                </button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="shrink-0 mr-1.5 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      {deletingPath === llmsFile.path
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <MoreHorizontal className="h-3.5 w-3.5" />
+                      }
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleDelete(llmsFile)}>
+                      <Trash2 className="h-3.5 w-3.5 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+
+            {/* Context files */}
             {sortedFiles.map((file) => {
               const isSelected = selectedFile?.path === file.path
               const displayName = file.name.replace(/\.md$/, "")
