@@ -27,5 +27,9 @@
 
 1. Visual style setting for prototype
 
+- when taking decisions are taken in V0 or Claude that could be documented to context then ask or suggest./ Via Skills and instructions
+- 
+
 **CONTEXT FILES**
+
 - Notes and ideas document
