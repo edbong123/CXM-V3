@@ -43,7 +43,8 @@ function handleMethod(method: string, id: unknown, params: Record<string, unknow
           protocolVersion: "2024-11-05",
           serverInfo: {
             name: "CXM Context Manager",
-            version: "1.0.0"
+            version: "1.0.0",
+            icon: "https://hebbkx1anhila5yf.public.blob.vercel-storage.com/image-qelcYls92cMMvFuPNbS93BmxVpqJPe.png"
           },
           capabilities: {
             tools: {},
