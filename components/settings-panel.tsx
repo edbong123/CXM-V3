@@ -32,12 +32,12 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   } = useGitHub()
 
   const [showToken, setShowToken] = useState(false)
-  const [tokenInput, setTokenInput] = useState(token)
+  const [tokenInput, setTokenInput] = useState(token || "")
   const [localError, setLocalError] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
-      setTokenInput(token)
+      setTokenInput(token || "")
       setLocalError(null)
     }
   }, [open, token])
