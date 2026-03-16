@@ -16,10 +16,11 @@ import { cn } from "@/lib/utils"
 interface ProjectSelectorProps {
   onOpenSettings: () => void
   onAddProject: () => void
+  onOpenProjectSettings: (projectId: string) => void
 }
 
-export function ProjectSelector({ onOpenSettings, onAddProject }: ProjectSelectorProps) {
-  const { user, projects, activeProject, setActiveProject, removeProject, fetchFiles } = useGitHub()
+export function ProjectSelector({ onOpenSettings, onAddProject, onOpenProjectSettings }: ProjectSelectorProps) {
+  const { user, projects, activeProject, setActiveProject, removeProject, refreshFiles } = useGitHub()
   const [isOpen, setIsOpen] = useState(false)
   const [switching, setSwitching] = useState(false)
 
@@ -35,7 +36,7 @@ export function ProjectSelector({ onOpenSettings, onAddProject }: ProjectSelecto
     setIsOpen(false)
     // Fetch files for the new project
     setTimeout(async () => {
-      await fetchFiles()
+      await refreshFiles()
       setSwitching(false)
     }, 100)
   }
@@ -96,13 +97,12 @@ export function ProjectSelector({ onOpenSettings, onAddProject }: ProjectSelecto
               </div>
               {projects.map((project) => {
                 const isActive = activeProject?.id === project.id
-                const isReady = project.contextFolderReady && project.llmsTxtReady
                 
                 return (
                   <DropdownMenuItem
                     key={project.id}
                     className={cn(
-                      "flex items-center justify-between gap-2 cursor-pointer",
+                      "flex items-center justify-between gap-2 cursor-pointer group",
                       isActive && "bg-accent"
                     )}
                     onClick={() => handleSelectProject(project)}
@@ -113,19 +113,24 @@ export function ProjectSelector({ onOpenSettings, onAddProject }: ProjectSelecto
                       ) : (
                         <div className="w-3.5" />
                       )}
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-sm truncate">{getRepoShortName(project.repo)}</span>
-                        {!isReady && (
-                          <span className="text-[10px] text-amber-600">Setup incomplete</span>
-                        )}
-                      </div>
+                      <span className="text-sm truncate">{getRepoShortName(project.repo)}</span>
                     </div>
-                    <button
-                      onClick={(e) => handleRemoveProject(e, project.id)}
-                      className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setIsOpen(false); onOpenProjectSettings(project.id) }}
+                        className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                        title="Project settings"
+                      >
+                        <Settings className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={(e) => handleRemoveProject(e, project.id)}
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Remove project"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
                   </DropdownMenuItem>
                 )
               })}
@@ -136,11 +141,6 @@ export function ProjectSelector({ onOpenSettings, onAddProject }: ProjectSelecto
           <DropdownMenuItem onClick={() => { setIsOpen(false); onAddProject() }}>
             <Plus className="h-3.5 w-3.5" />
             Add Project
-          </DropdownMenuItem>
-          
-          <DropdownMenuItem onClick={() => { setIsOpen(false); onOpenSettings() }}>
-            <Settings className="h-3.5 w-3.5" />
-            Settings
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

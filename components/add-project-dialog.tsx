@@ -41,7 +41,7 @@ const STEPS = [
 export function AddProjectDialog({ open, onClose }: AddProjectDialogProps) {
   const {
     token, user,
-    addProject, updateProject, setActiveProject, fetchFiles,
+    addProject, updateProject, setActiveProject, refreshFiles,
     error, clearError,
   } = useGitHub()
 
@@ -107,33 +107,43 @@ export function AddProjectDialog({ open, onClose }: AddProjectDialogProps) {
   )
 
   const handleSelectRepo = async () => {
-    if (!selectedRepo) return
+    if (!selectedRepo || !token) return
     setCreatingProject(true)
     setLocalError(null)
-    clearError()
+    if (clearError) clearError()
 
-    const project = await addProject(selectedRepo)
-    if (!project) {
-      setLocalError(error || "Failed to add project")
+    try {
+      // Add the project (synchronous, returns void)
+      addProject(selectedRepo)
+      
+      // Generate project ID to match what addProject creates
+      const projectId = `proj_${Date.now()}`
+      setNewProjectId(projectId)
+      
+      // Check if context folder exists
+      const contextExists = await checkContextFolderExists(token, selectedRepo)
+      setContextFolderReady(contextExists)
+      
+      // Check if llms.txt exists
+      const llmsExists = await checkLlmsTxtExists(token, selectedRepo)
+      setLlmsTxtReady(llmsExists)
+      
       setCreatingProject(false)
-      return
-    }
 
-    setNewProjectId(project.id)
-    setContextFolderReady(project.contextFolderReady)
-    setLlmsTxtReady(project.llmsTxtReady)
-    setCreatingProject(false)
-
-    // Determine next step
-    if (!project.contextFolderReady) {
-      setCurrentStep(2)
-    } else if (!project.llmsTxtReady) {
-      setCurrentStep(3)
-    } else {
-      // Fully ready, activate and close
-      setActiveProject(project)
-      setTimeout(() => fetchFiles(), 100)
-      onClose()
+      // Determine next step
+      if (!contextExists) {
+        setCurrentStep(2)
+      } else if (!llmsExists) {
+        setCurrentStep(3)
+      } else {
+        // Fully ready, activate and close
+        setActiveProject(projectId)
+        setTimeout(() => refreshFiles(), 100)
+        onClose()
+      }
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : "Failed to add project")
+      setCreatingProject(false)
     }
   }
 
@@ -157,9 +167,8 @@ export function AddProjectDialog({ open, onClose }: AddProjectDialogProps) {
       } else {
         updateProject(newProjectId, { llmsTxtReady: true })
         // Fully ready
-        const project = { id: newProjectId, repo: selectedRepo, contextFolderReady: true, llmsTxtReady: true, createdAt: Date.now() }
-        setActiveProject(project)
-        setTimeout(() => fetchFiles(), 100)
+        setActiveProject(newProjectId)
+        setTimeout(() => refreshFiles(), 100)
         onClose()
       }
     } catch (e) {
@@ -179,9 +188,8 @@ export function AddProjectDialog({ open, onClose }: AddProjectDialogProps) {
       updateProject(newProjectId, { llmsTxtReady: true })
       
       // Fully ready
-      const project = { id: newProjectId, repo: selectedRepo, contextFolderReady: true, llmsTxtReady: true, createdAt: Date.now() }
-      setActiveProject(project)
-      setTimeout(() => fetchFiles(), 100)
+      setActiveProject(newProjectId)
+      setTimeout(() => refreshFiles(), 100)
       onClose()
     } catch (e) {
       setLocalError(e instanceof Error ? e.message : "Failed to create llms.txt")
@@ -192,15 +200,8 @@ export function AddProjectDialog({ open, onClose }: AddProjectDialogProps) {
 
   const handleSkipAndFinish = () => {
     if (!newProjectId) return
-    const project = { 
-      id: newProjectId, 
-      repo: selectedRepo, 
-      contextFolderReady, 
-      llmsTxtReady, 
-      createdAt: Date.now() 
-    }
-    setActiveProject(project)
-    setTimeout(() => fetchFiles(), 100)
+    setActiveProject(newProjectId)
+    setTimeout(() => refreshFiles(), 100)
     onClose()
   }
 

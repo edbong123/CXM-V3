@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, Github, AlertCircle, Copy, Check, Plug } from "lucide-react"
+import { Settings, Github, AlertCircle, Copy, Check, Clipboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Toaster } from "sonner"
+import { Toaster, toast } from "sonner"
 import { GitHubProvider, useGitHub } from "@/contexts/github-context"
 import { SuggestionsProvider } from "@/contexts/suggestions-context"
 import { SettingsPanel } from "@/components/settings-panel"
 import { AddProjectDialog } from "@/components/add-project-dialog"
+import { ProjectSettingsDialog } from "@/components/project-settings-dialog"
 import { ContextFilesList } from "@/components/context-files-list"
 import { FileViewer } from "@/components/file-viewer"
 import { ChatView } from "@/components/chat-view"
@@ -25,18 +26,37 @@ export default function Page() {
 }
 
 function AppShell() {
-  const { user, repo, repoConnected, activeProject, fetchFiles, error, clearError } = useGitHub()
+  const { user, repo, repoConnected, activeProject, refreshFiles, error, clearError } = useGitHub()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [addProjectOpen, setAddProjectOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false)
+  const [projectSettingsId, setProjectSettingsId] = useState<string | null>(null)
 
-  const gitMcpUrl = repo ? `gitmcp.io/${repo}` : null
+  const handleOpenProjectSettings = (projectId: string) => {
+    setProjectSettingsId(projectId)
+    setProjectSettingsOpen(true)
+  }
+  const [copiedIn, setCopiedIn] = useState(false)
+  const [copiedOut, setCopiedOut] = useState(false)
 
-  const handleCopyMcp = () => {
-    if (!gitMcpUrl) return
-    navigator.clipboard.writeText(`https://${gitMcpUrl}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  // MCP URLs - mcpInUrl points to mcp-handler endpoint
+  const mcpInUrl = activeProject ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api/mcp` : null
+  const mcpOutUrl = repo ? `https://gitmcp.io/${repo}` : null
+
+  const handleCopyMcpIn = () => {
+    if (!mcpInUrl) return
+    navigator.clipboard.writeText(mcpInUrl)
+    setCopiedIn(true)
+    toast("Copied to clipboard")
+    setTimeout(() => setCopiedIn(false), 2000)
+  }
+
+  const handleCopyMcpOut = () => {
+    if (!mcpOutUrl) return
+    navigator.clipboard.writeText(mcpOutUrl)
+    setCopiedOut(true)
+    toast("Copied to clipboard")
+    setTimeout(() => setCopiedOut(false), 2000)
   }
   const [chatMode, setChatMode] = useState(false)
   const [chatInitialFile, setChatInitialFile] = useState<string | null>(null)
@@ -59,7 +79,7 @@ function AppShell() {
   // Auto-fetch files when project is active
   useEffect(() => {
     if (user && activeProject) {
-      fetchFiles()
+      refreshFiles()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeProject?.id])
@@ -78,23 +98,39 @@ function AppShell() {
           </div>
         </div>
 
-        {/* GitMCP URL */}
-        {gitMcpUrl && (
-          <div className="flex items-center gap-1.5 bg-muted/60 border rounded-md px-2.5 py-1.5">
-            <Plug className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-xs text-muted-foreground font-mono">{gitMcpUrl}</span>
+        {/* MCP Icons */}
+        {activeProject && (
+          <div className="flex items-center gap-2">
+            {/* MCP Icon IN - receive suggestions */}
             <button
-              onClick={handleCopyMcp}
-              title="Copy GitMCP URL"
+              onClick={handleCopyMcpIn}
+              title="Copy MCP Inbound URL"
               className={cn(
-                "ml-1 rounded p-0.5 transition-colors",
-                copied
-                  ? "text-emerald-600"
-                  : "text-muted-foreground hover:text-foreground"
+                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors border text-xs font-medium",
+                copiedIn
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+                  : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
               )}
             >
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              <span>MCP IN</span>
+              {copiedIn ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
             </button>
+
+            {mcpOutUrl && (
+              <button
+                onClick={handleCopyMcpOut}
+                title="Copy MCP Outbound URL"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors border text-xs font-medium",
+                  copiedOut
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+                    : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <span>MCP OUT</span>
+                {copiedOut ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
+              </button>
+            )}
           </div>
         )}
 
@@ -147,6 +183,7 @@ function AppShell() {
             onFileSelect={() => setChatMode(false)} 
             onOpenSettings={() => setSettingsOpen(true)}
             onAddProject={() => setAddProjectOpen(true)}
+            onOpenProjectSettings={handleOpenProjectSettings}
           />
           <main className="flex-1 overflow-hidden">
             {chatMode ? (
@@ -160,6 +197,11 @@ function AppShell() {
 
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <AddProjectDialog open={addProjectOpen} onClose={() => setAddProjectOpen(false)} />
+      <ProjectSettingsDialog 
+        open={projectSettingsOpen} 
+        onClose={() => { setProjectSettingsOpen(false); setProjectSettingsId(null) }} 
+        projectId={projectSettingsId} 
+      />
     </div>
   )
 }

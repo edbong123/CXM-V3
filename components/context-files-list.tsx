@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo, RotateCw, MoreHorizontal, Trash2, Settings } from "lucide-react"
 import { ProjectSelector } from "./project-selector"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useGitHub } from "@/contexts/github-context"
 import { useSuggestions } from "@/contexts/suggestions-context"
-import { createFile, deleteFile } from "@/lib/github-client"
+import { createFile, deleteFile, fetchLlmsTxt } from "@/lib/github-client"
 import { getSuggestionsForFile as getMockSuggestionsForFile } from "@/lib/mock-suggestions"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -31,12 +31,24 @@ interface ContextFilesListProps {
   onFileSelect?: () => void
   onOpenSettings: () => void
   onAddProject: () => void
+  onOpenProjectSettings: (projectId: string) => void
 }
 
-export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAddProject }: ContextFilesListProps) {
-  const { files, llmsFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, activeProject } = useGitHub()
+export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAddProject, onOpenProjectSettings }: ContextFilesListProps) {
+  const { contextFiles = [], isLoading: isLoadingFiles, refreshFiles, selectedFile, selectFile, token, activeProject } = useGitHub()
+  const files = contextFiles
+  const [llmsFile, setLlmsFile] = useState<any>(null)
   const repo = activeProject?.repo || ""
   const { getSuggestionsForFile: getContextSuggestions } = useSuggestions()
+
+  // Load llms.txt on mount and when repo changes
+  useEffect(() => {
+    if (token && repo) {
+      fetchLlmsTxt(token, repo).then(file => setLlmsFile(file || null)).catch(() => setLlmsFile(null))
+    } else {
+      setLlmsFile(null)
+    }
+  }, [token, repo])
 
   const getSuggestionCount = (fileName: string) => {
     const name = fileName.replace(/\.md$/, "")
@@ -56,7 +68,7 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
       await deleteFile(token, repo, file.path, file.sha, `Delete ${file.name}`)
       toast.success(`${file.name.replace(/\.md$/, "")} deleted`)
       if (selectedFile?.path === file.path) selectFile(null as any)
-      await fetchFiles()
+      await refreshFiles()
     } catch (e: any) {
       toast.error(`Failed to delete: ${e.message}`)
     } finally {
@@ -71,7 +83,7 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
     setIsCreating(true)
     try {
       await createFile(token, repo, `context/${fileName}`, `# ${fileName.replace(".md", "")}\n\n`, `docs: create ${fileName}`)
-      await fetchFiles()
+      await refreshFiles()
       setCreateOpen(false)
       setNewFileName("")
       toast.success(`Created ${fileName}`)
@@ -82,14 +94,14 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
     }
   }
 
-  // Files displayed in order as provided
-  const sortedFiles = files
+  // Files displayed in order as provided (default to empty array)
+  const sortedFiles = files || []
 
   return (
     <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
 
       {/* Project Selector */}
-      <ProjectSelector onOpenSettings={onOpenSettings} onAddProject={onAddProject} />
+      <ProjectSelector onOpenSettings={onOpenSettings} onAddProject={onAddProject} onOpenProjectSettings={onOpenProjectSettings} />
 
       {/* New Chat button */}
       <div className="px-2 pt-3 pb-1">
@@ -158,7 +170,7 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
             variant="ghost"
             size="icon"
             className="h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground"
-            onClick={fetchFiles}
+            onClick={refreshFiles}
             disabled={isLoadingFiles}
             title="Refresh"
           >
@@ -185,6 +197,53 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
           </div>
         ) : (
           <div className="flex flex-col px-2 pb-3">
+            {/* llms.txt file (if exists) */}
+            {llmsFile && (
+              <div
+                className={cn(
+                  "group flex items-center rounded-md transition-colors",
+                  selectedFile?.path === llmsFile.path
+                    ? "bg-accent text-accent-foreground"
+                    : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
+                )}
+              >
+                <button
+                  onClick={() => {
+                    selectFile(llmsFile)
+                    onFileSelect?.()
+                  }}
+                  className="flex-1 flex items-center gap-2.5 px-3 py-1.5 text-left min-w-0"
+                >
+                  <FileText className={cn(
+                    "h-3.5 w-3.5 shrink-0",
+                    selectedFile?.path === llmsFile.path ? "text-primary" : "text-muted-foreground/60"
+                  )} />
+                  <span className="text-sm truncate font-medium">LLMS</span>
+                </button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      className="shrink-0 mr-1.5 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-foreground"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      {deletingPath === llmsFile.path
+                        ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        : <MoreHorizontal className="h-3.5 w-3.5" />
+                      }
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleDelete(llmsFile)}>
+                      <Trash2 className="h-3.5 w-3.5 mr-2" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+
+            {/* Context files */}
             {sortedFiles.map((file) => {
               const isSelected = selectedFile?.path === file.path
               const displayName = file.name.replace(/\.md$/, "")

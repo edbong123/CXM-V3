@@ -1,384 +1,306 @@
+// GitHub Context Provider
+// Cache bust: 2026-03-16T12:00:00Z
 "use client"
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react"
 import type { ContextFile } from "@/lib/github-client"
-import { fetchContextFiles, fetchFileContent, fetchFileSha, commitFile, checkLlmsTxtExists, createLlmsTxt, checkContextFolderExists, createContextFolder } from "@/lib/github-client"
+import {
+  fetchContextFiles,
+  fetchFileContent,
+  fetchFileSha,
+  commitFile,
+  checkLlmsTxtExists,
+  createLlmsTxt,
+  checkContextFolderExists,
+  createContextFolder
+} from "@/lib/github-client"
+
+const STORAGE_KEY = "github_token"
+const USER_STORAGE_KEY = "github_user"
 
 interface GitHubUser {
   login: string
   avatar_url: string
-  name: string | null
+  name: string
 }
 
-// Project represents a connected repository
-export interface Project {
+interface Project {
   id: string
-  repo: string // owner/repo format
-  contextFolderReady: boolean
-  llmsTxtReady: boolean
-  createdAt: number
+  repo: string
+  createdAt: string
 }
 
 interface GitHubContextType {
-  // Auth (shared across all projects)
-  token: string
-  setToken: (token: string) => void
+  isConnected: boolean
   user: GitHubUser | null
-  isVerifying: boolean
-  verifyToken: (tokenToVerify?: string) => Promise<boolean>
-  disconnect: () => void
-
-  // Projects
+  token: string | null
   projects: Project[]
+  activeProjectId: string | null
   activeProject: Project | null
-  setActiveProject: (project: Project | null) => void
-  addProject: (repo: string) => Promise<Project | null>
+  repo: string | null
+  contextFiles: ContextFile[]
+  isLoading: boolean
+  error: string | null
+  isVerifying: boolean
+  selectedFile: ContextFile | null
+  selectedFileContent: string | null
+  isLoadingContent: boolean
+  connect: (token: string) => Promise<boolean>
+  verifyToken: (token: string) => Promise<boolean>
+  clearError: () => void
+  disconnect: () => void
+  setActiveProject: (projectId: string) => void
+  addProject: (repo: string) => void
   removeProject: (projectId: string) => void
   updateProject: (projectId: string, updates: Partial<Project>) => void
-
-  // Current project files
-  files: ContextFile[]
-  llmsFile: ContextFile | null
-  isLoadingFiles: boolean
-  fetchFiles: () => Promise<void>
-  selectedFile: ContextFile | null
-  selectFile: (file: ContextFile) => void
-  forceSelectFile: (file: ContextFile) => void
-  fileContent: string
-  isLoadingContent: boolean
-
-  // Commit (for active project)
-  commitChanges: (content: string, message: string) => Promise<boolean>
-  isCommitting: boolean
-
-  // Review mode
-  isReviewMode: boolean
-  setIsReviewMode: (value: boolean) => void
-  pendingFileSelect: ContextFile | null
-  setPendingFileSelect: (file: ContextFile | null) => void
-
-  // Legacy repo access (for backwards compatibility)
-  repo: string
+  refreshFiles: () => Promise<void>
+  selectFile: (file: ContextFile | null) => void
+  saveFile: (path: string, content: string, message?: string) => Promise<boolean>
+  checkAndCreateContextFolder: (projectId: string) => Promise<boolean>
+  checkAndCreateLlmsTxt: (projectId: string) => Promise<boolean>
   repoConnected: boolean
-
-  // Error
-  error: string | null
-  clearError: () => void
 }
 
-const GitHubContext = createContext<GitHubContextType | null>(null)
+const GitHubContext = createContext<GitHubContextType | undefined>(undefined)
 
 export function GitHubProvider({ children }: { children: React.ReactNode }) {
-  // Auth state (shared)
-  const [token, setTokenState] = useState("")
+  const [isConnected, setIsConnected] = useState(false)
   const [user, setUser] = useState<GitHubUser | null>(null)
-  const [isVerifying, setIsVerifying] = useState(false)
-
-  // Projects state
+  const [token, setToken] = useState<string | null>(null)
   const [projects, setProjects] = useState<Project[]>([])
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null)
-
-  // Files state (for active project)
-  const [files, setFiles] = useState<ContextFile[]>([])
-  const [llmsFile, setLlmsFile] = useState<ContextFile | null>(null)
-  const [isLoadingFiles, setIsLoadingFiles] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<ContextFile | null>(null)
-  const [fileContent, setFileContent] = useState("")
-  const [isLoadingContent, setIsLoadingContent] = useState(false)
-  const [isCommitting, setIsCommitting] = useState(false)
+  const [contextFiles, setContextFiles] = useState<ContextFile[]>([])
+  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isReviewMode, setIsReviewMode] = useState(false)
-  const [pendingFileSelect, setPendingFileSelect] = useState<ContextFile | null>(null)
+  const [isVerifying, setIsVerifying] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<ContextFile | null>(null)
+  const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null)
+  const [isLoadingContent, setIsLoadingContent] = useState(false)
 
-  // Derived state
-  const activeProject = projects.find(p => p.id === activeProjectId) || null
-  const repo = activeProject?.repo || ""
-  const repoConnected = !!activeProject
-
-  // Load persisted state on mount
+  // Initialize from localStorage
   useEffect(() => {
-    const stored = localStorage.getItem("github_ctx_v2")
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        if (parsed.token) setTokenState(parsed.token)
-        if (parsed.user) setUser(parsed.user)
-        if (parsed.projects) setProjects(parsed.projects)
-        if (parsed.activeProjectId) setActiveProjectId(parsed.activeProjectId)
-      } catch {
-        // Try legacy format
-        const legacy = localStorage.getItem("github_ctx")
-        if (legacy) {
-          try {
-            const legacyParsed = JSON.parse(legacy)
-            if (legacyParsed.token) setTokenState(legacyParsed.token)
-            if (legacyParsed.user) setUser(legacyParsed.user)
-            // Migrate single repo to project
-            if (legacyParsed.repo && legacyParsed.repoConnected) {
-              const migratedProject: Project = {
-                id: `project-${Date.now()}`,
-                repo: legacyParsed.repo,
-                contextFolderReady: true,
-                llmsTxtReady: true,
-                createdAt: Date.now()
-              }
-              setProjects([migratedProject])
-              setActiveProjectId(migratedProject.id)
-            }
-          } catch {}
-        }
-      }
+    const storedToken = localStorage.getItem(STORAGE_KEY)
+    const storedUser = localStorage.getItem(USER_STORAGE_KEY)
+    const storedProjects = localStorage.getItem("projects")
+
+    if (storedToken && storedUser) {
+      setToken(storedToken)
+      setUser(JSON.parse(storedUser))
+      setIsConnected(true)
+    }
+
+    if (storedProjects) {
+      setProjects(JSON.parse(storedProjects))
     }
   }, [])
 
-  const persist = useCallback((updates: Record<string, unknown>) => {
-    const stored = localStorage.getItem("github_ctx_v2")
-    const current = stored ? JSON.parse(stored) : {}
-    localStorage.setItem("github_ctx_v2", JSON.stringify({ ...current, ...updates }))
+  const clearError = useCallback(() => {
+    setError(null)
   }, [])
 
-  const setToken = useCallback((t: string) => {
-    setTokenState(t)
-    persist({ token: t })
-  }, [persist])
+  const connect = async (newToken: string): Promise<boolean> => {
+    try {
+      const response = await fetch("https://api.github.com/user", {
+        headers: {
+          Authorization: `Bearer ${newToken}`,
+          Accept: "application/vnd.github.v3+json"
+        }
+      })
 
-  const verifyToken = useCallback(async (tokenToVerify?: string): Promise<boolean> => {
-    const tokenValue = tokenToVerify ?? token
-    if (!tokenValue.trim()) {
-      setError("Please enter a Personal Access Token.")
+      if (!response.ok) {
+        throw new Error("Invalid token")
+      }
+
+      const userData = await response.json()
+      const githubUser: GitHubUser = {
+        login: userData.login,
+        avatar_url: userData.avatar_url,
+        name: userData.name
+      }
+
+      setToken(newToken)
+      setUser(githubUser)
+      setIsConnected(true)
+
+      localStorage.setItem(STORAGE_KEY, newToken)
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(githubUser))
+
+      return true
+    } catch {
+      setError("Failed to connect to GitHub")
       return false
     }
-    if (tokenToVerify && tokenToVerify !== token) {
-      setTokenState(tokenToVerify)
-      persist({ token: tokenToVerify })
-    }
+  }
+
+  const verifyToken = async (newToken: string): Promise<boolean> => {
     setIsVerifying(true)
     setError(null)
     try {
-      const res = await fetch("https://api.github.com/user", {
-        headers: { Authorization: `Bearer ${tokenValue}`, Accept: "application/vnd.github+json" },
-      })
-      if (!res.ok) {
-        setError("Invalid token. Please check and try again.")
-        return false
-      }
-      const data = await res.json()
-      const u: GitHubUser = { login: data.login, avatar_url: data.avatar_url, name: data.name }
-      setUser(u)
-      persist({ user: u })
-      return true
-    } catch {
-      setError("Network error. Please try again.")
-      return false
+      const result = await connect(newToken)
+      return result
     } finally {
       setIsVerifying(false)
     }
-  }, [token, persist])
+  }
 
-  const disconnect = useCallback(() => {
-    setTokenState("")
+  const disconnect = () => {
+    setIsConnected(false)
     setUser(null)
+    setToken(null)
     setProjects([])
     setActiveProjectId(null)
-    setFiles([])
-    setSelectedFile(null)
-    setFileContent("")
-    localStorage.removeItem("github_ctx_v2")
-    localStorage.removeItem("github_ctx")
+    setContextFiles([])
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(USER_STORAGE_KEY)
+  }
+
+  const setActiveProject = useCallback((projectId: string) => {
+    setActiveProjectId(projectId)
   }, [])
 
-  const setActiveProject = useCallback((project: Project | null) => {
-    setActiveProjectId(project?.id || null)
-    persist({ activeProjectId: project?.id || null })
-    // Clear current file state when switching projects
-    setFiles([])
-    setLlmsFile(null)
-    setSelectedFile(null)
-    setFileContent("")
-    setIsReviewMode(false)
-    setPendingFileSelect(null)
-  }, [persist])
-
-  const addProject = useCallback(async (repoFullName: string): Promise<Project | null> => {
-    if (!token) {
-      setError("Please authenticate first.")
-      return null
-    }
-
-    // Check if project already exists
-    if (projects.some(p => p.repo === repoFullName)) {
-      setError("This repository is already added as a project.")
-      return null
-    }
-
-    // Verify repo access
-    try {
-      const res = await fetch(`https://api.github.com/repos/${repoFullName}`, {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
-      })
-      if (!res.ok) {
-        setError("Repository not found or access denied.")
-        return null
-      }
-    } catch {
-      setError("Network error. Please try again.")
-      return null
-    }
-
-    // Check context folder and llms.txt
-    const contextExists = await checkContextFolderExists(token, repoFullName)
-    const llmsExists = await checkLlmsTxtExists(token, repoFullName)
-
+  const addProject = useCallback((repo: string) => {
     const newProject: Project = {
-      id: `project-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      repo: repoFullName,
-      contextFolderReady: contextExists,
-      llmsTxtReady: llmsExists,
-      createdAt: Date.now()
+      id: `proj_${Date.now()}`,
+      repo,
+      createdAt: new Date().toISOString()
     }
-
-    const newProjects = [...projects, newProject]
-    setProjects(newProjects)
-    persist({ projects: newProjects })
-
-    return newProject
-  }, [token, projects, persist])
+    const updated = [...projects, newProject]
+    setProjects(updated)
+    localStorage.setItem("projects", JSON.stringify(updated))
+    setActiveProjectId(newProject.id)
+  }, [projects])
 
   const removeProject = useCallback((projectId: string) => {
-    const newProjects = projects.filter(p => p.id !== projectId)
-    setProjects(newProjects)
-    persist({ projects: newProjects })
-
-    // If removing active project, switch to first available or null
+    const updated = projects.filter(p => p.id !== projectId)
+    setProjects(updated)
+    localStorage.setItem("projects", JSON.stringify(updated))
     if (activeProjectId === projectId) {
-      const nextProject = newProjects[0] || null
-      setActiveProjectId(nextProject?.id || null)
-      persist({ activeProjectId: nextProject?.id || null })
-      setFiles([])
-      setLlmsFile(null)
-      setSelectedFile(null)
-      setFileContent("")
+      setActiveProjectId(updated[0]?.id || null)
     }
-  }, [projects, activeProjectId, persist])
+  }, [projects, activeProjectId])
 
   const updateProject = useCallback((projectId: string, updates: Partial<Project>) => {
-    const newProjects = projects.map(p => 
-      p.id === projectId ? { ...p, ...updates } : p
-    )
-    setProjects(newProjects)
-    persist({ projects: newProjects })
-  }, [projects, persist])
+    const updated = projects.map(p => p.id === projectId ? { ...p, ...updates } : p)
+    setProjects(updated)
+    localStorage.setItem("projects", JSON.stringify(updated))
+  }, [projects])
 
-  const fetchFiles = useCallback(async () => {
-    if (!activeProject || !token) return
-    setIsLoadingFiles(true)
-    setError(null)
+  const activeProject = projects.find(p => p.id === activeProjectId) || null
+  const repo = activeProject?.repo || null
+
+  const refreshFiles = async () => {
+    if (!token || !repo) return
+    setIsLoading(true)
     try {
-      const [fetched, llms] = await Promise.all([
-        fetchContextFiles(token, activeProject.repo),
-        checkLlmsTxtExists(token, activeProject.repo).then(exists => {
-          if (exists) {
-            return { name: "llms.txt", path: "llms.txt", sha: "" }
-          } else {
-            return createLlmsTxt(token, activeProject.repo).then(() => ({
-              name: "llms.txt",
-              path: "llms.txt",
-              sha: ""
-            }))
-          }
-        })
-      ])
-      setFiles(fetched)
-      setLlmsFile(llms)
-
-      // Update project status
-      if (!activeProject.llmsTxtReady) {
-        updateProject(activeProject.id, { llmsTxtReady: true })
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to fetch files.")
+      const files = await fetchContextFiles(token, repo)
+      setContextFiles(files || [])
+    } catch (err) {
+      setError("Failed to fetch context files")
     } finally {
-      setIsLoadingFiles(false)
+      setIsLoading(false)
     }
-  }, [activeProject, token, updateProject])
+  }
 
-  const selectFile = useCallback(async (file: ContextFile) => {
-    if (!activeProject || !token) return
-    if (isReviewMode) {
-      setPendingFileSelect(file)
-      return
-    }
+  const selectFile = useCallback(async (file: ContextFile | null) => {
     setSelectedFile(file)
+    if (!file || !token || !repo) return
+
     setIsLoadingContent(true)
-    setFileContent("")
     try {
-      const content = await fetchFileContent(token, activeProject.repo, file.path)
-      setFileContent(content)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load file.")
+      const content = await fetchFileContent(token, repo, file.path)
+      setSelectedFileContent(content)
+    } catch (err) {
+      setError("Failed to fetch file content")
     } finally {
       setIsLoadingContent(false)
     }
-  }, [token, activeProject, isReviewMode])
+  }, [token, repo])
 
-  const forceSelectFile = useCallback(async (file: ContextFile) => {
-    if (!activeProject || !token) return
-    setPendingFileSelect(null)
-    setSelectedFile(file)
-    setIsLoadingContent(true)
-    setFileContent("")
+  const saveFile = async (path: string, content: string, message = "Update via CXM"): Promise<boolean> => {
+    if (!token || !repo) return false
     try {
-      const content = await fetchFileContent(token, activeProject.repo, file.path)
-      setFileContent(content)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load file.")
-    } finally {
-      setIsLoadingContent(false)
+      const sha = await fetchFileSha(token, repo, path)
+      await commitFile(token, repo, path, sha, content, message)
+      await refreshFiles()
+      return true
+    } catch (err) {
+      setError("Failed to save file")
+      return false
     }
-  }, [token, activeProject])
+  }
 
-  const commitChanges = useCallback(async (content: string, message: string): Promise<boolean> => {
-    if (!selectedFile || !activeProject || !token) return false
-    setIsCommitting(true)
-    setError(null)
+  const checkAndCreateContextFolder = async (projectId: string): Promise<boolean> => {
+    if (!token) return false
+    const proj = projects.find(p => p.id === projectId)
+    if (!proj) return false
+
     try {
-      const latestSha = await fetchFileSha(token, activeProject.repo, selectedFile.path)
-      await commitFile(token, activeProject.repo, selectedFile.path, latestSha, content, message)
-      const fetched = await fetchContextFiles(token, activeProject.repo)
-      setFiles(fetched)
-      const updated = fetched.find(f => f.path === selectedFile.path)
-      if (updated) {
-        setSelectedFile(updated)
-        setFileContent(content)
+      const exists = await checkContextFolderExists(token, proj.repo)
+      if (!exists) {
+        await createContextFolder(token, proj.repo)
       }
       return true
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to commit.")
+    } catch {
+      setError("Failed to create context folder")
       return false
-    } finally {
-      setIsCommitting(false)
     }
-  }, [selectedFile, token, activeProject])
+  }
 
-  const clearError = useCallback(() => setError(null), [])
+  const checkAndCreateLlmsTxt = async (projectId: string): Promise<boolean> => {
+    if (!token) return false
+    const proj = projects.find(p => p.id === projectId)
+    if (!proj) return false
 
-  return (
-    <GitHubContext.Provider value={{
-      token, setToken, user, isVerifying, verifyToken, disconnect,
-      projects, activeProject, setActiveProject, addProject, removeProject, updateProject,
-      files, llmsFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, forceSelectFile, fileContent, isLoadingContent,
-      commitChanges, isCommitting,
-      isReviewMode, setIsReviewMode, pendingFileSelect, setPendingFileSelect,
-      repo, repoConnected,
-      error, clearError,
-    }}>
-      {children}
-    </GitHubContext.Provider>
-  )
+    try {
+      const exists = await checkLlmsTxtExists(token, proj.repo)
+      if (!exists) {
+        await createLlmsTxt(token, proj.repo)
+      }
+      return true
+    } catch {
+      setError("Failed to create llms.txt")
+      return false
+    }
+  }
+
+  const value: GitHubContextType = {
+    isConnected,
+    user,
+    token,
+    projects,
+    activeProjectId,
+    activeProject,
+    repo,
+    contextFiles,
+    isLoading,
+    error,
+    isVerifying,
+    selectedFile,
+    selectedFileContent,
+    isLoadingContent,
+    connect,
+    verifyToken,
+    clearError,
+    disconnect,
+    setActiveProject,
+    addProject,
+    removeProject,
+    updateProject,
+    refreshFiles,
+    selectFile,
+    saveFile,
+    checkAndCreateContextFolder,
+    checkAndCreateLlmsTxt,
+    repoConnected: isConnected && !!repo
+  }
+
+  return <GitHubContext.Provider value={value}>{children}</GitHubContext.Provider>
 }
 
 export function useGitHub() {
-  const ctx = useContext(GitHubContext)
-  if (!ctx) throw new Error("useGitHub must be used within GitHubProvider")
-  return ctx
+  const context = useContext(GitHubContext)
+  if (!context) {
+    throw new Error("useGitHub must be used within GitHubProvider")
+  }
+  return context
 }

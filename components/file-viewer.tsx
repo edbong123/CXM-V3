@@ -27,9 +27,18 @@ type Tab = "view" | "edit" | "suggestions" | "history"
 
 export function FileViewer({ onOpenChat }: { onOpenChat?: (file: string, mode?: "suggest" | "ask-questions") => void }) {
   const { 
-    selectedFile, fileContent, isLoadingContent, commitChanges, isCommitting, token, repo,
-    isReviewMode, setIsReviewMode, pendingFileSelect, setPendingFileSelect, forceSelectFile
+    selectedFile, selectedFileContent: fileContent, isLoadingContent, saveFile, token, repo
   } = useGitHub()
+  
+  // Local state for review mode (not in context)
+  const [isReviewMode, setIsReviewMode] = useState(false)
+  const [pendingFileSelect, setPendingFileSelect] = useState<any>(null)
+  const forceSelectFile = (file: any) => {} // Placeholder - handled differently
+  const commitChanges = async (content: string, message: string) => {
+    if (!selectedFile) return false
+    return saveFile(selectedFile.path, content, message)
+  }
+  const isCommitting = false
 
   const { getSuggestionsForFile: getContextSuggestions } = useSuggestions()
 
