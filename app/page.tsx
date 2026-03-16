@@ -104,7 +104,7 @@ function AppShell() {
             {/* MCP Icon IN - receive suggestions */}
             <button
               onClick={handleCopyMcpIn}
-              title="Copy MCP Inbound URL (receive suggestions from Claude)"
+              title="Copy MCP Inbound URL"
               className={cn(
                 "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors border text-xs font-medium",
                 copiedIn
@@ -112,16 +112,14 @@ function AppShell() {
                   : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
               )}
             >
-              <Clipboard className="h-3.5 w-3.5" />
-              <span>IN</span>
+              <span>MCP IN</span>
               {copiedIn ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
             </button>
-            
-            {/* MCP Icon OUT - GitMCP for context */}
+
             {mcpOutUrl && (
               <button
                 onClick={handleCopyMcpOut}
-                title="Copy GitMCP URL (share context)"
+                title="Copy MCP Outbound URL"
                 className={cn(
                   "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors border text-xs font-medium",
                   copiedOut
@@ -129,8 +127,7 @@ function AppShell() {
                     : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Clipboard className="h-3.5 w-3.5" />
-                <span>OUT</span>
+                <span>MCP OUT</span>
                 {copiedOut ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
               </button>
             )}
