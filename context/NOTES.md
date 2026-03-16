@@ -32,4 +32,7 @@
 
 **CONTEXT FILES**
 
-- Notes and ideas document
+- system filesllms
+- Notes
+- file description
+- prupose
