@@ -1,6 +1,7 @@
 **INSTRUCTIONS**
 
-- Claudeproject instruction
+- GitHub setup
+- Claude project instruction
 - MCP
 - Skill
 
