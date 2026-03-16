@@ -1,5 +1,4 @@
-// Context Files List Component
-// Cache bust: 2026-03-16T15:30:00Z - Restructured for proper LLMS/Context separation
+// Context Files List Component - v2
 "use client"
 
 import { useState, useEffect } from "react"
