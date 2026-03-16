@@ -1,4 +1,4 @@
-ISNTRUCTIONS
+INSTRUCTIONS
 
 - project instruction for Claude
 
