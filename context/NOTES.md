@@ -1,10 +1,11 @@
 **INSTRUCTIONS**
 
-- project instruction for Claude
+- Claudeproject instruction
+- MCP
+- Skill
 
-- MCP for Claude
-
-- MCP for V0 (+ instructions)
+- V0MCP
+- Instructions
 
 - Make a doc to define process and way to collaborate.
 - prompts to use in claude to update and process document.
@@ -16,6 +17,7 @@
 2. Validate llms.txt and provide improvements
 
 - 3. Commit/Save : Just add a default text
+- 
 
 **FIXES**
 
@@ -24,3 +26,6 @@
 **THINK**
 
 1. Visual style setting for prototype
+
+**CONTEXT FILES**
+- Notes and ideas document
