@@ -21,6 +21,8 @@ V0
 
 2. Validate llms.txt and provide improvements
 
+- besite the Repo name in left pane add link topen GH in new window
+
 - 3. Commit/Save : Just add a default text. Allow to generate with AI. On creation just suggest create!
 - on every doc show a summary and show its purpose and phase
 - a "deploy knowledge:" function. Like project publishig thaty cleans up the llms.txt file etc. and removes overlaps.
