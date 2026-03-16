@@ -12,11 +12,13 @@ export interface Suggestion {
   after: string
   status: SuggestionStatus
   createdAt: Date
+  source?: "chat" | "mcp" | "mock"  // Track where suggestion came from
 }
 
 interface SuggestionsContextType {
   suggestions: Suggestion[]
   addSuggestion: (suggestion: Omit<Suggestion, "id" | "createdAt" | "status">) => void
+  addSuggestionWithId: (suggestion: Omit<Suggestion, "createdAt" | "status">) => void
   removeSuggestion: (id: string) => void
   updateSuggestionStatus: (id: string, status: SuggestionStatus) => void
   getSuggestionsForFile: (fileName: string, includeStatuses?: SuggestionStatus[]) => Suggestion[]
@@ -33,9 +35,25 @@ export function SuggestionsProvider({ children }: { children: ReactNode }) {
       ...suggestion,
       id: `suggestion-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
       status: "pending",
-      createdAt: new Date()
+      createdAt: new Date(),
+      source: suggestion.source || "chat"
     }
     setSuggestions(prev => [...prev, newSuggestion])
+  }, [])
+
+  // Add suggestion with a specific ID (for MCP suggestions)
+  const addSuggestionWithId = useCallback((suggestion: Omit<Suggestion, "createdAt" | "status">) => {
+    // Check if suggestion with this ID already exists
+    setSuggestions(prev => {
+      if (prev.some(s => s.id === suggestion.id)) {
+        return prev // Already exists
+      }
+      return [...prev, {
+        ...suggestion,
+        status: "pending" as SuggestionStatus,
+        createdAt: new Date()
+      }]
+    })
   }, [])
 
   const removeSuggestion = useCallback((id: string) => {
@@ -68,6 +86,7 @@ export function SuggestionsProvider({ children }: { children: ReactNode }) {
     <SuggestionsContext.Provider value={{
       suggestions,
       addSuggestion,
+      addSuggestionWithId,
       removeSuggestion,
       updateSuggestionStatus,
       getSuggestionsForFile,

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, Github, AlertCircle, Copy, Check, Plug } from "lucide-react"
+import { Settings, Github, AlertCircle, Copy, Check, ArrowDownToLine, ArrowUpFromLine } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "sonner"
 import { GitHubProvider, useGitHub } from "@/contexts/github-context"
@@ -36,15 +36,25 @@ function AppShell() {
     setProjectSettingsId(projectId)
     setProjectSettingsOpen(true)
   }
-  const [copied, setCopied] = useState(false)
+  const [copiedIn, setCopiedIn] = useState(false)
+  const [copiedOut, setCopiedOut] = useState(false)
 
-  const gitMcpUrl = repo ? `gitmcp.io/${repo}` : null
+  // MCP URLs
+  const mcpInUrl = activeProject ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api/mcp/inbound?project_id=${activeProject.id}` : null
+  const mcpOutUrl = repo ? `https://gitmcp.io/${repo}` : null
 
-  const handleCopyMcp = () => {
-    if (!gitMcpUrl) return
-    navigator.clipboard.writeText(`https://${gitMcpUrl}`)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleCopyMcpIn = () => {
+    if (!mcpInUrl) return
+    navigator.clipboard.writeText(mcpInUrl)
+    setCopiedIn(true)
+    setTimeout(() => setCopiedIn(false), 2000)
+  }
+
+  const handleCopyMcpOut = () => {
+    if (!mcpOutUrl) return
+    navigator.clipboard.writeText(mcpOutUrl)
+    setCopiedOut(true)
+    setTimeout(() => setCopiedOut(false), 2000)
   }
   const [chatMode, setChatMode] = useState(false)
   const [chatInitialFile, setChatInitialFile] = useState<string | null>(null)
@@ -86,23 +96,42 @@ function AppShell() {
           </div>
         </div>
 
-        {/* GitMCP URL */}
-        {gitMcpUrl && (
-          <div className="flex items-center gap-1.5 bg-muted/60 border rounded-md px-2.5 py-1.5">
-            <Plug className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-xs text-muted-foreground font-mono">{gitMcpUrl}</span>
+        {/* MCP Icons */}
+        {activeProject && (
+          <div className="flex items-center gap-1">
+            {/* MCP In - receive suggestions */}
             <button
-              onClick={handleCopyMcp}
-              title="Copy GitMCP URL"
+              onClick={handleCopyMcpIn}
+              title="Copy MCP Inbound URL (receive suggestions)"
               className={cn(
-                "ml-1 rounded p-0.5 transition-colors",
-                copied
-                  ? "text-emerald-600"
-                  : "text-muted-foreground hover:text-foreground"
+                "flex items-center gap-1.5 rounded-md px-2 py-1.5 transition-colors border",
+                copiedIn
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+                  : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
               )}
             >
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              <ArrowDownToLine className="h-3.5 w-3.5" />
+              <span className="text-xs font-medium">MCP In</span>
+              {copiedIn && <Check className="h-3 w-3" />}
             </button>
+            
+            {/* MCP Out - GitMCP for context */}
+            {mcpOutUrl && (
+              <button
+                onClick={handleCopyMcpOut}
+                title="Copy GitMCP URL (share context)"
+                className={cn(
+                  "flex items-center gap-1.5 rounded-md px-2 py-1.5 transition-colors border",
+                  copiedOut
+                    ? "bg-emerald-50 border-emerald-200 text-emerald-600"
+                    : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <ArrowUpFromLine className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">MCP Out</span>
+                {copiedOut && <Check className="h-3 w-3" />}
+              </button>
+            )}
           </div>
         )}
 

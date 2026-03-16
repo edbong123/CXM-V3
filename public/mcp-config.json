@@ -1,0 +1,56 @@
+{
+  "name": "context-manager",
+  "description": "MCP server for managing AI context files. Submit suggestions to context documents that will be reviewed in the Context Manager UI.",
+  "version": "1.0.0",
+  "protocol_version": "2024-11-05",
+  "authentication": {
+    "type": "bearer",
+    "description": "GitHub Personal Access Token with 'repo' scope"
+  },
+  "endpoint": "/api/mcp",
+  "tools": [
+    {
+      "name": "list_projects",
+      "description": "List all available projects (repositories) that have a /context folder configured"
+    },
+    {
+      "name": "get_project_files", 
+      "description": "Get all context files (.md files) for a specific project"
+    },
+    {
+      "name": "get_file_content",
+      "description": "Get the content of a specific context file"
+    },
+    {
+      "name": "submit_suggestion",
+      "description": "Submit a suggestion for a context file. The suggestion will appear in the Context Manager UI for human review before being applied."
+    }
+  ],
+  "example_usage": {
+    "initialize": {
+      "jsonrpc": "2.0",
+      "id": 1,
+      "method": "initialize"
+    },
+    "list_tools": {
+      "jsonrpc": "2.0", 
+      "id": 2,
+      "method": "tools/list"
+    },
+    "call_tool": {
+      "jsonrpc": "2.0",
+      "id": 3,
+      "method": "tools/call",
+      "params": {
+        "name": "submit_suggestion",
+        "arguments": {
+          "project_id": "owner/repo",
+          "file_path": "context/DECISIONS.md",
+          "suggestion_type": "add",
+          "after": "## New Decision\\n\\nWe decided to use TypeScript for type safety.",
+          "rationale": "Adding documentation for our TypeScript decision"
+        }
+      }
+    }
+  }
+}
