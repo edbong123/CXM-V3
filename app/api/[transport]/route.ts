@@ -1,9 +1,7 @@
 import { createMcpHandler } from "mcp-handler"
 import { z } from "zod"
-import { NextRequest } from "next/server"
 
-// In-memory suggestion store (shared with inbound route logic)
-// Key: project_id
+// In-memory suggestion store (shared across requests)
 const mcpSuggestionStore = global as unknown as {
   _mcpStore?: Map<string, Array<{
     id: string
@@ -93,6 +91,7 @@ function matchToFiles(suggestion: string, contextFiles: Array<{ name: string; co
   return scores2.length > 0 ? scores2.slice(0, 3).map((s) => s.file) : ["NOTES"]
 }
 
+// Create MCP handler - no auth, fully open
 const handler = createMcpHandler(
   (server) => {
     // Tool 1: Submit a suggestion
@@ -112,16 +111,15 @@ const handler = createMcpHandler(
             .optional()
             .describe("Optional: explicit list of context file names to target (e.g. ['DECISIONS', 'GLOSSARY']). If omitted, the system auto-detects."),
           repo: z.string().optional().describe("Optional: GitHub repo (owner/repo) to fetch context from for better file matching"),
-          token: z.string().optional().describe("Optional: GitHub token for private repo access"),
         },
       },
-      async ({ project_id, content, target_files, repo, token }) => {
+      async ({ project_id, content, target_files, repo }) => {
         // Determine target files
         let files: string[]
         if (target_files && target_files.length > 0) {
           files = target_files
         } else {
-          const contextFiles = repo ? await fetchContextFilesFromRepo(repo, token) : []
+          const contextFiles = repo ? await fetchContextFilesFromRepo(repo) : []
           files = matchToFiles(content, contextFiles)
         }
 
@@ -148,7 +146,7 @@ const handler = createMcpHandler(
           ],
         }
       }
-    ),
+    )
 
     // Tool 2: List pending suggestions for a project
     server.registerTool(
@@ -184,11 +182,11 @@ const handler = createMcpHandler(
       }
     )
   },
-  {},
+  {}, // No middleware/auth config - completely open
   {
     basePath: "/api",
     maxDuration: 60,
-    verboseLogs: false,
+    verboseLogs: true, // Enable logging for debugging
   }
 )
 
