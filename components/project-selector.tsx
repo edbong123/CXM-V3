@@ -102,7 +102,7 @@ export function ProjectSelector({ onOpenSettings, onAddProject }: ProjectSelecto
                   <DropdownMenuItem
                     key={project.id}
                     className={cn(
-                      "flex items-center justify-between gap-2 cursor-pointer",
+                      "flex items-center justify-between gap-2 cursor-pointer group",
                       isActive && "bg-accent"
                     )}
                     onClick={() => handleSelectProject(project)}
@@ -120,12 +120,22 @@ export function ProjectSelector({ onOpenSettings, onAddProject }: ProjectSelecto
                         )}
                       </div>
                     </div>
-                    <button
-                      onClick={(e) => handleRemoveProject(e, project.id)}
-                      className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setIsOpen(false); onOpenSettings() }}
+                        className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+                        title="Settings"
+                      >
+                        <Settings className="h-3 w-3" />
+                      </button>
+                      <button
+                        onClick={(e) => handleRemoveProject(e, project.id)}
+                        className="p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                        title="Remove project"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
                   </DropdownMenuItem>
                 )
               })}
@@ -136,11 +146,6 @@ export function ProjectSelector({ onOpenSettings, onAddProject }: ProjectSelecto
           <DropdownMenuItem onClick={() => { setIsOpen(false); onAddProject() }}>
             <Plus className="h-3.5 w-3.5" />
             Add Project
-          </DropdownMenuItem>
-          
-          <DropdownMenuItem onClick={() => { setIsOpen(false); onOpenSettings() }}>
-            <Settings className="h-3.5 w-3.5" />
-            Settings
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
