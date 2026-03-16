@@ -40,10 +40,13 @@ interface GitHubContextType {
   contextFiles: ContextFile[]
   isLoading: boolean
   error: string | null
+  isVerifying: boolean
   selectedFile: ContextFile | null
   selectedFileContent: string | null
   isLoadingContent: boolean
   connect: (token: string) => Promise<boolean>
+  verifyToken: (token: string) => Promise<boolean>
+  clearError: () => void
   disconnect: () => void
   setActiveProject: (projectId: string) => void
   addProject: (repo: string) => void
@@ -72,6 +75,7 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
   const [contextFiles, setContextFiles] = useState<ContextFile[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isVerifying, setIsVerifying] = useState(false)
   const [selectedFile, setSelectedFile] = useState<ContextFile | null>(null)
   const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null)
   const [isLoadingContent, setIsLoadingContent] = useState(false)
@@ -126,6 +130,10 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     }
   }, [token, repo, loadContextFiles])
 
+  const clearError = useCallback(() => {
+    setError(null)
+  }, [])
+
   const connect = async (newToken: string): Promise<boolean> => {
     try {
       const response = await fetch("https://api.github.com/user", {
@@ -157,6 +165,17 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     } catch {
       setError("Failed to connect to GitHub")
       return false
+    }
+  }
+
+  const verifyToken = async (newToken: string): Promise<boolean> => {
+    setIsVerifying(true)
+    setError(null)
+    try {
+      const result = await connect(newToken)
+      return result
+    } finally {
+      setIsVerifying(false)
     }
   }
 
@@ -311,10 +330,13 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
         contextFiles,
         isLoading,
         error,
+        isVerifying,
         selectedFile,
         selectedFileContent,
         isLoadingContent,
         connect,
+        verifyToken,
+        clearError,
         disconnect,
         setActiveProject,
         addProject,
