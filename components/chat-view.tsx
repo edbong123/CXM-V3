@@ -36,7 +36,8 @@ interface ChatViewProps {
 }
 
 export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
-  const { files, llmsFile, token, repo } = useGitHub()
+  const { contextFiles: files, token, repo } = useGitHub()
+  const llmsFile = files.find(f => f.name === 'llms.txt') || null
   const { addSuggestion } = useSuggestions()
   const [message, setMessage] = useState("")
   const [selectedFiles, setSelectedFiles] = useState<string[]>(initialFile ? [initialFile] : [])
