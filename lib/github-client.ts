@@ -145,33 +145,71 @@ export interface CommitInfo {
   url: string
 }
 
-export async function fetchOrCreateLLMTxt(token: string, repo: string): Promise<ContextFile> {
-  try {
-    const res = await fetch(`${BASE}/repos/${repo}/contents/LLM.txt`, {
-      headers: headers(token),
-    })
-    
-    if (res.status === 404) {
-      // File doesn't exist, create it
-      const content = "# LLM Context\n\nThis file serves as the main context for AI analysis."
-      await createFile(token, repo, "LLM.txt", content, "Initial LLM.txt creation")
-      return { name: "LLM.txt", path: "LLM.txt", sha: "" }
-    }
-    
-    if (!res.ok) throw new Error(`Failed to fetch LLM.txt: ${res.statusText}`)
-    
-    const data: { name: string; path: string; sha: string } = await res.json()
-    return { name: data.name, path: data.path, sha: data.sha }
-  } catch (e) {
-    // If any error, try to create the file
-    try {
-      const content = "# LLM Context\n\nThis file serves as the main context for AI analysis."
-      await createFile(token, repo, "LLM.txt", content, "Initial LLM.txt creation")
-      return { name: "LLM.txt", path: "LLM.txt", sha: "" }
-    } catch {
-      throw new Error("Failed to fetch or create LLM.txt")
-    }
-  }
+/**
+ * Check if /context/ folder exists in the repo
+ */
+export async function checkContextFolderExists(token: string, repo: string): Promise<boolean> {
+  const res = await fetch(`${BASE}/repos/${repo}/contents/context`, {
+    headers: headers(token),
+  })
+  return res.ok
+}
+
+/**
+ * Create the /context/ folder by creating a placeholder .gitkeep file
+ */
+export async function createContextFolder(token: string, repo: string): Promise<void> {
+  const content = "# Context Files\n\nThis folder contains context files for AI assistants.\n"
+  await createFile(
+    token, 
+    repo, 
+    "context/.gitkeep", 
+    content, 
+    "Initialize /context/ folder for AI context files"
+  )
+}
+
+/**
+ * Check if llms.txt exists in the repo root
+ */
+export async function checkLlmsTxtExists(token: string, repo: string): Promise<boolean> {
+  const res = await fetch(`${BASE}/repos/${repo}/contents/llms.txt`, {
+    headers: headers(token),
+  })
+  return res.ok
+}
+
+/**
+ * Create llms.txt file pointing to the /context/ folder
+ */
+export async function createLlmsTxt(token: string, repo: string): Promise<void> {
+  const content = `# ${repo.split('/')[1]} - LLM Context
+
+> This repository uses structured context files to provide AI assistants with project knowledge.
+
+## Context Location
+
+All context files are located in the \`/context/\` directory.
+
+## Available Context Files
+
+See [/context/](/context/) for the full list of context documents including:
+- Company and project background
+- Technical decisions and architecture
+- Standards and conventions
+- Open questions and workflows
+
+## Usage
+
+When working with AI assistants, point them to this file or the /context/ folder to provide project context.
+`
+  await createFile(
+    token, 
+    repo, 
+    "llms.txt", 
+    content, 
+    "Add llms.txt for AI assistant context discovery"
+  )
 }
 
 export async function fetchCommitHistory(

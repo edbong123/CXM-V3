@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo, RotateCw, MoreHorizontal, Trash2 } from "lucide-react"
+import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo, RotateCw, MoreHorizontal, Trash2, Settings } from "lucide-react"
+import { ProjectSelector } from "./project-selector"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -28,10 +29,13 @@ import { toast } from "sonner"
 interface ContextFilesListProps {
   onNewChat: () => void
   onFileSelect?: () => void
+  onOpenSettings: () => void
+  onAddProject: () => void
 }
 
-export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListProps) {
-  const { files, llmFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, repo } = useGitHub()
+export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAddProject }: ContextFilesListProps) {
+  const { files, llmsFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, activeProject } = useGitHub()
+  const repo = activeProject?.repo || ""
   const { getSuggestionsForFile: getContextSuggestions } = useSuggestions()
 
   const getSuggestionCount = (fileName: string) => {
@@ -84,6 +88,9 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
   return (
     <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
 
+      {/* Project Selector */}
+      <ProjectSelector onOpenSettings={onOpenSettings} onAddProject={onAddProject} />
+
       {/* New Chat button */}
       <div className="px-2 pt-3 pb-1">
         <Button
@@ -96,27 +103,27 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
         </Button>
       </div>
 
-      {/* LLM.txt - always at top */}
-      {llmFile && (
+      {/* llms.txt - always at top */}
+      {llmsFile && (
         <div className="px-2 pb-1">
           <div className="flex items-center gap-2 rounded-md px-1 py-1.5 hover:bg-accent/40 transition-colors group">
             <button
               onClick={() => {
-                selectFile(llmFile)
+                selectFile(llmsFile)
                 onFileSelect?.()
               }}
               className={cn(
                 "flex-1 flex items-center gap-2.5 rounded-md px-2 py-1 text-left transition-colors",
-                selectedFile?.path === llmFile.path
+                selectedFile?.path === llmsFile.path
                   ? "bg-accent text-accent-foreground"
                   : "text-sidebar-foreground/80 hover:bg-accent/60 hover:text-sidebar-foreground"
               )}
             >
               <ListTodo className={cn(
                 "h-3.5 w-3.5 shrink-0",
-                selectedFile?.path === llmFile.path ? "text-primary" : "text-muted-foreground/60"
+                selectedFile?.path === llmsFile.path ? "text-primary" : "text-muted-foreground/60"
               )} />
-              <span className="text-sm truncate font-medium">LLM</span>
+              <span className="text-sm truncate font-medium">LLMS</span>
             </button>
             <button
               onClick={(e) => {
@@ -124,7 +131,7 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
                 // Update action will be defined later
               }}
               className="rounded p-1 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-all"
-              title="Update LLM"
+              title="Update llms.txt"
             >
               <RotateCw className="h-3.5 w-3.5" />
             </button>

@@ -7,6 +7,7 @@ import { Toaster } from "sonner"
 import { GitHubProvider, useGitHub } from "@/contexts/github-context"
 import { SuggestionsProvider } from "@/contexts/suggestions-context"
 import { SettingsPanel } from "@/components/settings-panel"
+import { AddProjectDialog } from "@/components/add-project-dialog"
 import { ContextFilesList } from "@/components/context-files-list"
 import { FileViewer } from "@/components/file-viewer"
 import { ChatView } from "@/components/chat-view"
@@ -24,8 +25,9 @@ export default function Page() {
 }
 
 function AppShell() {
-  const { user, repo, repoConnected, fetchFiles, error, clearError } = useGitHub()
+  const { user, repo, repoConnected, activeProject, fetchFiles, error, clearError } = useGitHub()
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [addProjectOpen, setAddProjectOpen] = useState(false)
   const [copied, setCopied] = useState(false)
 
   const gitMcpUrl = repo ? `gitmcp.io/${repo}` : null
@@ -54,15 +56,15 @@ function AppShell() {
     setChatMode(false)
   }
 
-  // Auto-fetch files when fully connected
+  // Auto-fetch files when project is active
   useEffect(() => {
-    if (user && repoConnected) {
+    if (user && activeProject) {
       fetchFiles()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, repoConnected])
+  }, [user, activeProject?.id])
 
-  const isConnected = !!user && repoConnected
+  const isConnected = !!user && !!activeProject
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
@@ -134,11 +136,18 @@ function AppShell() {
       )}
 
       {/* Main content */}
-      {!isConnected ? (
-        <NotConnectedState onOpenSettings={() => setSettingsOpen(true)} />
+      {!user ? (
+        <NotConnectedState onOpenSettings={() => setSettingsOpen(true)} type="auth" />
+      ) : !activeProject ? (
+        <NotConnectedState onOpenSettings={() => setAddProjectOpen(true)} type="project" />
       ) : (
         <div className="flex flex-1 overflow-hidden">
-          <ContextFilesList onNewChat={() => handleOpenChat()} onFileSelect={() => setChatMode(false)} />
+          <ContextFilesList 
+            onNewChat={() => handleOpenChat()} 
+            onFileSelect={() => setChatMode(false)} 
+            onOpenSettings={() => setSettingsOpen(true)}
+            onAddProject={() => setAddProjectOpen(true)}
+          />
           <main className="flex-1 overflow-hidden">
             {chatMode ? (
               <ChatView key={chatKey} onClose={() => setChatMode(false)} initialFile={chatInitialFile} initialMode={chatInitialMode} onNavigateToSuggestions={handleNavigateToSuggestions} />
@@ -150,11 +159,14 @@ function AppShell() {
       )}
 
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <AddProjectDialog open={addProjectOpen} onClose={() => setAddProjectOpen(false)} />
     </div>
   )
 }
 
-function NotConnectedState({ onOpenSettings }: { onOpenSettings: () => void }) {
+function NotConnectedState({ onOpenSettings, type }: { onOpenSettings: () => void; type: "auth" | "project" }) {
+  const isAuth = type === "auth"
+  
   return (
     <div className="flex flex-1 items-center justify-center">
       <div className="flex flex-col items-center gap-5 text-center max-w-sm px-6">
@@ -162,31 +174,39 @@ function NotConnectedState({ onOpenSettings }: { onOpenSettings: () => void }) {
           <Github className="h-8 w-8 text-muted-foreground/60" />
         </div>
         <div className="flex flex-col gap-2">
-          <h1 className="text-xl font-serif font-semibold">Connect your repository</h1>
+          <h1 className="text-xl font-serif font-semibold">
+            {isAuth ? "Connect to GitHub" : "Add a Project"}
+          </h1>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Add your GitHub Personal Access Token and connect a repository to start managing context files with AI-powered suggestions.
+            {isAuth 
+              ? "Add your GitHub Personal Access Token to get started. One token works across all your projects."
+              : "Select a repository to add as a project. Each project has its own context files for AI assistants."
+            }
           </p>
         </div>
         <div className="flex flex-col gap-2 w-full">
           <Button onClick={onOpenSettings} className="w-full">
             <Settings className="h-4 w-4" />
-            Open Settings
+            {isAuth ? "Connect GitHub" : "Add Project"}
           </Button>
-          <p className="text-xs text-muted-foreground">
-            Requires a PAT with{" "}
-            <code className="bg-muted px-1 rounded text-xs">repo</code> scope.
-          </p>
+          {isAuth && (
+            <p className="text-xs text-muted-foreground">
+              Requires a PAT with{" "}
+              <code className="bg-muted px-1 rounded text-xs">repo</code> scope.
+            </p>
+          )}
         </div>
 
         {/* Demo hint */}
         <div className="border rounded-lg p-4 text-left bg-muted/30 w-full">
-          <p className="text-xs font-medium mb-2">Demo mode</p>
+          <p className="text-xs font-medium mb-2">
+            {isAuth ? "Getting started" : "Multi-project support"}
+          </p>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Mock suggestions are pre-loaded for files named{" "}
-            <code className="bg-muted px-1 rounded">BUSINESS-CONTEXT.md</code>,{" "}
-            <code className="bg-muted px-1 rounded">TECH-STACK.md</code>, and{" "}
-            <code className="bg-muted px-1 rounded">README.md</code> in your{" "}
-            <code className="bg-muted px-1 rounded">context/</code> folder.
+            {isAuth 
+              ? "Generate a token at GitHub Settings → Developer Settings → Personal Access Tokens. Enable the 'repo' scope for full access."
+              : "You can add multiple repositories as separate projects. Switch between them using the project selector in the sidebar."
+            }
           </p>
         </div>
       </div>
