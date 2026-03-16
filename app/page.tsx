@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Settings, Github, AlertCircle, Copy, Check, Clipboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Toaster } from "sonner"
+import { Toaster, toast } from "sonner"
 import { GitHubProvider, useGitHub } from "@/contexts/github-context"
 import { SuggestionsProvider } from "@/contexts/suggestions-context"
 import { SettingsPanel } from "@/components/settings-panel"
@@ -47,6 +47,7 @@ function AppShell() {
     if (!mcpInUrl) return
     navigator.clipboard.writeText(mcpInUrl)
     setCopiedIn(true)
+    toast("Copied to clipboard")
     setTimeout(() => setCopiedIn(false), 2000)
   }
 
@@ -54,6 +55,7 @@ function AppShell() {
     if (!mcpOutUrl) return
     navigator.clipboard.writeText(mcpOutUrl)
     setCopiedOut(true)
+    toast("Copied to clipboard")
     setTimeout(() => setCopiedOut(false), 2000)
   }
   const [chatMode, setChatMode] = useState(false)
@@ -110,7 +112,7 @@ function AppShell() {
                   : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
               )}
             >
-              <Copy className="h-3.5 w-3.5" />
+              <Clipboard className="h-3.5 w-3.5" />
               <span>IN</span>
               {copiedIn ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
             </button>
@@ -127,7 +129,7 @@ function AppShell() {
                     : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
                 )}
               >
-                <Copy className="h-3.5 w-3.5" />
+                <Clipboard className="h-3.5 w-3.5" />
                 <span>OUT</span>
                 {copiedOut ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
               </button>
