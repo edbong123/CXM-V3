@@ -1,11 +1,15 @@
 **INSTRUCTIONS**
 
 - GitHub setup
-- Claude project instruction
+
+Claude project instruction
+
 - MCP
 - Skill
 
-- V0MCP
+V0
+
+- MCP
 - Instructions
 
 - Make a doc to define process and way to collaborate.
