@@ -39,8 +39,8 @@ function AppShell() {
   const [copiedIn, setCopiedIn] = useState(false)
   const [copiedOut, setCopiedOut] = useState(false)
 
-  // MCP URLs - mcpInUrl points to SSE endpoint for Claude Desktop
-  const mcpInUrl = activeProject ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api/mcp/sse` : null
+  // MCP URLs - mcpInUrl points to mcp-handler endpoint
+  const mcpInUrl = activeProject ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api/mcp` : null
   const mcpOutUrl = repo ? `https://gitmcp.io/${repo}` : null
 
   const handleCopyMcpIn = () => {
