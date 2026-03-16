@@ -70,16 +70,14 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const handleVerify = async () => {
     clearError()
     setLocalError(null)
-    setToken(tokenInput)
-    const ok = await verifyToken()
+    const ok = await verifyToken(tokenInput)
     if (!ok) setLocalError(error)
   }
 
   const handleConnect = async () => {
     clearError()
     setLocalError(null)
-    setRepo(selectedRepo)
-    const ok = await connectRepo()
+    const ok = await connectRepo(selectedRepo)
     if (!ok) setLocalError(error)
   }
 

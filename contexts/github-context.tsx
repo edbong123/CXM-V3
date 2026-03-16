@@ -16,14 +16,14 @@ interface GitHubContextType {
   setToken: (token: string) => void
   user: GitHubUser | null
   isVerifying: boolean
-  verifyToken: () => Promise<boolean>
+  verifyToken: (tokenToVerify?: string) => Promise<boolean>
   disconnect: () => void
 
   // Repo
   repo: string
   setRepo: (repo: string) => void
   isConnectingRepo: boolean
-  connectRepo: () => Promise<boolean>
+  connectRepo: (repoToConnect?: string) => Promise<boolean>
   repoConnected: boolean
 
   // Files
@@ -105,16 +105,22 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     persist({ repo: r, repoConnected: false })
   }, [persist])
 
-  const verifyToken = useCallback(async (): Promise<boolean> => {
-    if (!token.trim()) {
+  const verifyToken = useCallback(async (tokenToVerify?: string): Promise<boolean> => {
+    const tokenValue = tokenToVerify ?? token
+    if (!tokenValue.trim()) {
       setError("Please enter a Personal Access Token.")
       return false
+    }
+    // Update state if a new token was passed
+    if (tokenToVerify && tokenToVerify !== token) {
+      setTokenState(tokenToVerify)
+      persist({ token: tokenToVerify })
     }
     setIsVerifying(true)
     setError(null)
     try {
       const res = await fetch("https://api.github.com/user", {
-        headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
+        headers: { Authorization: `Bearer ${tokenValue}`, Accept: "application/vnd.github+json" },
       })
       if (!res.ok) {
         setError("Invalid token. Please check and try again.")
@@ -144,15 +150,21 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("github_ctx")
   }, [])
 
-  const connectRepo = useCallback(async (): Promise<boolean> => {
-    if (!repo.trim() || !repo.includes("/")) {
+  const connectRepo = useCallback(async (repoToConnect?: string): Promise<boolean> => {
+    const repoValue = repoToConnect ?? repo
+    if (!repoValue.trim() || !repoValue.includes("/")) {
       setError("Please enter a valid repo in owner/repo format.")
       return false
+    }
+    // Update state if a new repo was passed
+    if (repoToConnect && repoToConnect !== repo) {
+      setRepoState(repoToConnect)
+      persist({ repo: repoToConnect, repoConnected: false })
     }
     setIsConnectingRepo(true)
     setError(null)
     try {
-      const res = await fetch(`https://api.github.com/repos/${repo}`, {
+      const res = await fetch(`https://api.github.com/repos/${repoValue}`, {
         headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
       })
       if (!res.ok) {
@@ -160,7 +172,7 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
         return false
       }
       setRepoConnected(true)
-      persist({ repo, repoConnected: true })
+      persist({ repo: repoValue, repoConnected: true })
       return true
     } catch {
       setError("Network error. Please try again.")
