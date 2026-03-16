@@ -110,8 +110,9 @@ function AppShell() {
                   : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
               )}
             >
+              <Copy className="h-3.5 w-3.5" />
+              <span>IN</span>
               {copiedIn ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
-              <span>MCP Icon IN</span>
             </button>
             
             {/* MCP Icon OUT - GitMCP for context */}
@@ -126,8 +127,9 @@ function AppShell() {
                     : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
                 )}
               >
+                <Copy className="h-3.5 w-3.5" />
+                <span>OUT</span>
                 {copiedOut ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
-                <span>MCP Icon OUT</span>
               </button>
             )}
           </div>
