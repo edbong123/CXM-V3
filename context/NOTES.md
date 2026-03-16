@@ -16,7 +16,7 @@
 
 2. Validate llms.txt and provide improvements
 
-- 3. Commit/Save : Just add a default text
+- 3. Commit/Save : Just add a default text. Allow to generate with AI.
 - on every doc show a summary and show its purpose and phase
 
 **FIXES**
