@@ -1,5 +1,9 @@
 "use client"
-// GitHub Context Provider - manages auth, projects, and file operations
+/*
+ * GitHub Context Provider
+ * Manages auth, projects, and file operations
+ * Updated: force cache refresh
+ */
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react"
 import type { ContextFile } from "@/lib/github-client"
