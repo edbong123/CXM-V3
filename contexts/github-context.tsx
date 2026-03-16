@@ -1,32 +1,39 @@
+// GitHub Context Provider
 "use client"
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react"
 import type { ContextFile } from "@/lib/github-client"
-import { 
-  fetchContextFiles, 
-  fetchFileContent, 
-  fetchFileSha, 
-  commitFile, 
-  checkLlmsTxtExists, 
-  createLlmsTxt, 
-  checkContextFolderExists, 
-  createContextFolder 
+import {
+  fetchContextFiles,
+  fetchFileContent,
+  fetchFileSha,
+  commitFile,
+  checkLlmsTxtExists,
+  createLlmsTxt,
+  checkContextFolderExists,
+  createContextFolder
 } from "@/lib/github-client"
+
+const STORAGE_KEY = "github_token"
+const USER_STORAGE_KEY = "github_user"
 
 interface GitHubUser {
   login: string
   avatar_url: string
-  name?: string
+  name: string
 }
 
-export interface Project {
+interface Project {
   id: string
   repo: string
-  contextFolder: string
-  llmsTxtPath: string
-  createdAt: number
-  hasContextFolder?: boolean
-  hasLlmsTxt?: boolean
+  createdAt: string
+}
+
+interface ContextFile {
+  name: string
+  path: string
+  size: number
+  type: string
 }
 
 interface GitHubContextType {
@@ -57,14 +64,10 @@ interface GitHubContextType {
   saveFile: (path: string, content: string, message?: string) => Promise<boolean>
   checkAndCreateContextFolder: (projectId: string) => Promise<boolean>
   checkAndCreateLlmsTxt: (projectId: string) => Promise<boolean>
+  repoConnected: boolean
 }
 
 const GitHubContext = createContext<GitHubContextType | undefined>(undefined)
-
-const STORAGE_KEY = "github_token"
-const USER_STORAGE_KEY = "github_user"
-const PROJECTS_STORAGE_KEY = "github_projects"
-const ACTIVE_PROJECT_KEY = "github_active_project"
 
 export function GitHubProvider({ children }: { children: React.ReactNode }) {
   const [isConnected, setIsConnected] = useState(false)
@@ -80,55 +83,22 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
   const [selectedFileContent, setSelectedFileContent] = useState<string | null>(null)
   const [isLoadingContent, setIsLoadingContent] = useState(false)
 
-  const activeProject = projects.find(p => p.id === activeProjectId) || null
-  const repo = activeProject?.repo || null
-
+  // Initialize from localStorage
   useEffect(() => {
-    const savedToken = localStorage.getItem(STORAGE_KEY)
-    const savedUser = localStorage.getItem(USER_STORAGE_KEY)
-    const savedProjects = localStorage.getItem(PROJECTS_STORAGE_KEY)
-    const savedActiveProject = localStorage.getItem(ACTIVE_PROJECT_KEY)
-    
-    if (savedToken && savedUser) {
-      setToken(savedToken)
-      setUser(JSON.parse(savedUser))
+    const storedToken = localStorage.getItem(STORAGE_KEY)
+    const storedUser = localStorage.getItem(USER_STORAGE_KEY)
+    const storedProjects = localStorage.getItem("projects")
+
+    if (storedToken && storedUser) {
+      setToken(storedToken)
+      setUser(JSON.parse(storedUser))
       setIsConnected(true)
     }
-    
-    if (savedProjects) {
-      const parsed = JSON.parse(savedProjects)
-      setProjects(parsed)
-    }
-    
-    if (savedActiveProject) {
-      setActiveProjectId(savedActiveProject)
+
+    if (storedProjects) {
+      setProjects(JSON.parse(storedProjects))
     }
   }, [])
-
-  const loadContextFiles = useCallback(async () => {
-    if (!token || !repo) return
-    
-    setIsLoading(true)
-    setError(null)
-    
-    try {
-      const files = await fetchContextFiles(token, repo)
-      setContextFiles(files)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load files")
-      setContextFiles([])
-    } finally {
-      setIsLoading(false)
-    }
-  }, [token, repo])
-
-  useEffect(() => {
-    if (token && repo) {
-      loadContextFiles()
-    } else {
-      setContextFiles([])
-    }
-  }, [token, repo, loadContextFiles])
 
   const clearError = useCallback(() => {
     setError(null)
@@ -142,25 +112,25 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
           Accept: "application/vnd.github.v3+json"
         }
       })
-      
+
       if (!response.ok) {
         throw new Error("Invalid token")
       }
-      
+
       const userData = await response.json()
       const githubUser: GitHubUser = {
         login: userData.login,
         avatar_url: userData.avatar_url,
         name: userData.name
       }
-      
+
       setToken(newToken)
       setUser(githubUser)
       setIsConnected(true)
-      
+
       localStorage.setItem(STORAGE_KEY, newToken)
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(githubUser))
-      
+
       return true
     } catch {
       setError("Failed to connect to GitHub")
@@ -180,184 +150,165 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
   }
 
   const disconnect = () => {
-    setToken(null)
-    setUser(null)
     setIsConnected(false)
+    setUser(null)
+    setToken(null)
+    setProjects([])
+    setActiveProjectId(null)
     setContextFiles([])
-    setSelectedFile(null)
-    setSelectedFileContent(null)
-    
     localStorage.removeItem(STORAGE_KEY)
     localStorage.removeItem(USER_STORAGE_KEY)
   }
 
-  const addProject = (repoPath: string) => {
+  const setActiveProject = useCallback((projectId: string) => {
+    setActiveProjectId(projectId)
+  }, [])
+
+  const addProject = useCallback((repo: string) => {
     const newProject: Project = {
-      id: `project_${Date.now()}`,
-      repo: repoPath,
-      contextFolder: "/context",
-      llmsTxtPath: "/llms.txt",
-      createdAt: Date.now()
+      id: `proj_${Date.now()}`,
+      repo,
+      createdAt: new Date().toISOString()
     }
-    
     const updated = [...projects, newProject]
     setProjects(updated)
-    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(updated))
-    
-    if (!activeProjectId) {
-      setActiveProjectId(newProject.id)
-      localStorage.setItem(ACTIVE_PROJECT_KEY, newProject.id)
-    }
-  }
+    localStorage.setItem("projects", JSON.stringify(updated))
+    setActiveProjectId(newProject.id)
+  }, [projects])
 
-  const removeProject = (projectId: string) => {
+  const removeProject = useCallback((projectId: string) => {
     const updated = projects.filter(p => p.id !== projectId)
     setProjects(updated)
-    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(updated))
-    
+    localStorage.setItem("projects", JSON.stringify(updated))
     if (activeProjectId === projectId) {
-      const newActive = updated[0]?.id || null
-      setActiveProjectId(newActive)
-      if (newActive) {
-        localStorage.setItem(ACTIVE_PROJECT_KEY, newActive)
-      } else {
-        localStorage.removeItem(ACTIVE_PROJECT_KEY)
-      }
+      setActiveProjectId(updated[0]?.id || null)
     }
-  }
+  }, [projects, activeProjectId])
 
-  const updateProject = (projectId: string, updates: Partial<Project>) => {
-    const updated = projects.map(p => 
-      p.id === projectId ? { ...p, ...updates } : p
-    )
+  const updateProject = useCallback((projectId: string, updates: Partial<Project>) => {
+    const updated = projects.map(p => p.id === projectId ? { ...p, ...updates } : p)
     setProjects(updated)
-    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(updated))
-  }
+    localStorage.setItem("projects", JSON.stringify(updated))
+  }, [projects])
 
-  const setActiveProject = (projectId: string) => {
-    setActiveProjectId(projectId)
-    localStorage.setItem(ACTIVE_PROJECT_KEY, projectId)
-    setSelectedFile(null)
-    setSelectedFileContent(null)
-  }
+  const activeProject = projects.find(p => p.id === activeProjectId) || null
+  const repo = activeProject?.repo || null
 
   const refreshFiles = async () => {
-    await loadContextFiles()
+    if (!token || !repo) return
+    setIsLoading(true)
+    try {
+      const files = await fetchContextFiles(repo, token)
+      setContextFiles(files || [])
+    } catch (err) {
+      setError("Failed to fetch context files")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const selectFile = useCallback(async (file: ContextFile | null) => {
     setSelectedFile(file)
-    
-    if (!file || !token || !repo) {
-      setSelectedFileContent(null)
-      return
-    }
-    
+    if (!file || !token || !repo) return
+
     setIsLoadingContent(true)
     try {
-      const content = await fetchFileContent(token, repo, file.path)
+      const content = await fetchFileContent(repo, file.path, token)
       setSelectedFileContent(content)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load file content")
-      setSelectedFileContent(null)
+      setError("Failed to fetch file content")
     } finally {
       setIsLoadingContent(false)
     }
   }, [token, repo])
 
-  const saveFile = async (path: string, content: string, message?: string): Promise<boolean> => {
+  const saveFile = async (path: string, content: string, message = "Update via CXM"): Promise<boolean> => {
     if (!token || !repo) return false
-    
     try {
-      const sha = await fetchFileSha(token, repo, path)
-      await commitFile(token, repo, path, content, message || `Update ${path}`, sha || undefined)
-      await loadContextFiles()
-      return true
+      const sha = await fetchFileSha(repo, path, token)
+      const success = await commitFile(repo, path, content, sha, message, token)
+      if (success) {
+        await refreshFiles()
+      }
+      return success
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save file")
+      setError("Failed to save file")
       return false
     }
   }
 
   const checkAndCreateContextFolder = async (projectId: string): Promise<boolean> => {
     if (!token) return false
-    
-    const project = projects.find(p => p.id === projectId)
-    if (!project) return false
-    
+    const proj = projects.find(p => p.id === projectId)
+    if (!proj) return false
+
     try {
-      const exists = await checkContextFolderExists(token, project.repo, project.contextFolder)
+      const exists = await checkContextFolderExists(proj.repo, token)
       if (!exists) {
-        await createContextFolder(token, project.repo, project.contextFolder)
+        await createContextFolder(proj.repo, token)
       }
-      updateProject(projectId, { hasContextFolder: true })
       return true
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create context folder")
+    } catch {
+      setError("Failed to create context folder")
       return false
     }
   }
 
   const checkAndCreateLlmsTxt = async (projectId: string): Promise<boolean> => {
     if (!token) return false
-    
-    const project = projects.find(p => p.id === projectId)
-    if (!project) return false
-    
+    const proj = projects.find(p => p.id === projectId)
+    if (!proj) return false
+
     try {
-      const exists = await checkLlmsTxtExists(token, project.repo, project.llmsTxtPath)
+      const exists = await checkLlmsTxtExists(proj.repo, token)
       if (!exists) {
-        await createLlmsTxt(token, project.repo, project.llmsTxtPath)
+        await createLlmsTxt(proj.repo, token)
       }
-      updateProject(projectId, { hasLlmsTxt: true })
       return true
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create llms.txt")
+    } catch {
+      setError("Failed to create llms.txt")
       return false
     }
   }
 
-  return (
-    <GitHubContext.Provider
-      value={{
-        isConnected,
-        user,
-        token,
-        projects,
-        activeProjectId,
-        activeProject,
-        repo,
-        contextFiles,
-        isLoading,
-        error,
-        isVerifying,
-        selectedFile,
-        selectedFileContent,
-        isLoadingContent,
-        connect,
-        verifyToken,
-        clearError,
-        disconnect,
-        setActiveProject,
-        addProject,
-        removeProject,
-        updateProject,
-        refreshFiles,
-        selectFile,
-        saveFile,
-        checkAndCreateContextFolder,
-        checkAndCreateLlmsTxt
-      }}
-    >
-      {children}
-    </GitHubContext.Provider>
-  )
+  const value: GitHubContextType = {
+    isConnected,
+    user,
+    token,
+    projects,
+    activeProjectId,
+    activeProject,
+    repo,
+    contextFiles,
+    isLoading,
+    error,
+    isVerifying,
+    selectedFile,
+    selectedFileContent,
+    isLoadingContent,
+    connect,
+    verifyToken,
+    clearError,
+    disconnect,
+    setActiveProject,
+    addProject,
+    removeProject,
+    updateProject,
+    refreshFiles,
+    selectFile,
+    saveFile,
+    checkAndCreateContextFolder,
+    checkAndCreateLlmsTxt,
+    repoConnected: isConnected && !!repo
+  }
+
+  return <GitHubContext.Provider value={value}>{children}</GitHubContext.Provider>
 }
 
 export function useGitHub() {
   const context = useContext(GitHubContext)
-  if (context === undefined) {
-    throw new Error("useGitHub must be used within a GitHubProvider")
+  if (!context) {
+    throw new Error("useGitHub must be used within GitHubProvider")
   }
   return context
 }
