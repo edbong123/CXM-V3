@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react"
 import type { ContextFile } from "@/lib/github-client"
-import { fetchContextFiles, fetchFileContent, fetchFileSha, commitFile, fetchOrCreateLLMTxt } from "@/lib/github-client"
+import { fetchContextFiles, fetchFileContent, fetchFileSha, commitFile, checkLlmsTxtExists, createLlmsTxt, checkContextFolderExists, createContextFolder } from "@/lib/github-client"
 
 interface GitHubUser {
   login: string
@@ -28,7 +28,7 @@ interface GitHubContextType {
 
   // Files
   files: ContextFile[]
-  llmFile: ContextFile | null
+  llmsFile: ContextFile | null
   isLoadingFiles: boolean
   fetchFiles: () => Promise<void>
   selectedFile: ContextFile | null
@@ -62,7 +62,7 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
   const [repoConnected, setRepoConnected] = useState(false)
   const [isConnectingRepo, setIsConnectingRepo] = useState(false)
   const [files, setFiles] = useState<ContextFile[]>([])
-  const [llmFile, setLlmFile] = useState<ContextFile | null>(null)
+  const [llmsFile, setLlmsFile] = useState<ContextFile | null>(null)
   const [isLoadingFiles, setIsLoadingFiles] = useState(false)
   const [selectedFile, setSelectedFile] = useState<ContextFile | null>(null)
   const [fileContent, setFileContent] = useState("")
@@ -187,12 +187,26 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     setIsLoadingFiles(true)
     setError(null)
     try {
-      const [fetched, llm] = await Promise.all([
+      const [fetched, llms] = await Promise.all([
         fetchContextFiles(token, repo),
-        fetchOrCreateLLMTxt(token, repo)
+        checkLlmsTxtExists(token, repo).then(exists => {
+          if (exists) {
+            return fetchFileContent(token, repo, "llms.txt").then(content => ({
+              name: "llms.txt",
+              path: "llms.txt",
+              sha: ""
+            }))
+          } else {
+            return createLlmsTxt(token, repo).then(() => ({
+              name: "llms.txt",
+              path: "llms.txt",
+              sha: ""
+            }))
+          }
+        })
       ])
       setFiles(fetched)
-      setLlmFile(llm)
+      setLlmsFile(llms)
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to fetch files.")
     } finally {
@@ -266,7 +280,7 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     <GitHubContext.Provider value={{
       token, setToken, user, isVerifying, verifyToken, disconnect,
       repo, setRepo, isConnectingRepo, connectRepo, repoConnected,
-      files, llmFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, forceSelectFile, fileContent, isLoadingContent,
+      files, llmsFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, forceSelectFile, fileContent, isLoadingContent,
       commitChanges, isCommitting,
       isReviewMode, setIsReviewMode, pendingFileSelect, setPendingFileSelect,
       error, clearError,
