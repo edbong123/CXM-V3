@@ -148,6 +148,16 @@ export interface CommitInfo {
 /**
  * Check if /context/ folder exists in the repo
  */
+export async function fetchLlmsTxt(token: string, repo: string): Promise<ContextFile | null> {
+  const res = await fetch(`${BASE}/repos/${repo}/contents/llms.txt`, {
+    headers: headers(token),
+  })
+  if (res.status === 404) return null
+  if (!res.ok) throw new Error(`Failed to fetch llms.txt: ${res.statusText}`)
+  const data: { name: string; path: string; sha: string } = await res.json()
+  return { name: data.name, path: data.path, sha: data.sha }
+}
+
 export async function checkContextFolderExists(token: string, repo: string): Promise<boolean> {
   const res = await fetch(`${BASE}/repos/${repo}/contents/context`, {
     headers: headers(token),

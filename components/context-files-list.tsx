@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo, RotateCw, MoreHorizontal, Trash2, Settings } from "lucide-react"
 import { ProjectSelector } from "./project-selector"
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useGitHub } from "@/contexts/github-context"
 import { useSuggestions } from "@/contexts/suggestions-context"
-import { createFile, deleteFile } from "@/lib/github-client"
+import { createFile, deleteFile, fetchLlmsTxt } from "@/lib/github-client"
 import { getSuggestionsForFile as getMockSuggestionsForFile } from "@/lib/mock-suggestions"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
@@ -37,9 +37,18 @@ interface ContextFilesListProps {
 export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAddProject, onOpenProjectSettings }: ContextFilesListProps) {
   const { contextFiles = [], isLoading: isLoadingFiles, refreshFiles, selectedFile, selectFile, token, activeProject } = useGitHub()
   const files = contextFiles
-  const llmsFile = contextFiles.find(f => f.name === 'llms.txt') || null
+  const [llmsFile, setLlmsFile] = useState<any>(null)
   const repo = activeProject?.repo || ""
   const { getSuggestionsForFile: getContextSuggestions } = useSuggestions()
+
+  // Load llms.txt on mount and when repo changes
+  useEffect(() => {
+    if (token && repo) {
+      fetchLlmsTxt(token, repo).then(file => setLlmsFile(file || null)).catch(() => setLlmsFile(null))
+    } else {
+      setLlmsFile(null)
+    }
+  }, [token, repo])
 
   const getSuggestionCount = (fileName: string) => {
     const name = fileName.replace(/\.md$/, "")
