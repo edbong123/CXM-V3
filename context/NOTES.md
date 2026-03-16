@@ -23,6 +23,7 @@ V0
 
 - 3. Commit/Save : Just add a default text. Allow to generate with AI. On creation just suggest create!
 - on every doc show a summary and show its purpose and phase
+- a "deploy knowledge:" function. Like project publishig thaty cleans up the llms.txt file etc. and removes overlaps.
 
 **FIXES**
 
