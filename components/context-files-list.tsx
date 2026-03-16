@@ -209,7 +209,7 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
                     "h-3.5 w-3.5 shrink-0",
                     selectedFile?.path === llmsFile.path ? "text-primary" : "text-muted-foreground/60"
                   )} />
-                  <span className="text-sm truncate font-medium">llms.txt</span>
+                  <span className="text-sm truncate font-medium">LLMS</span>
                 </button>
 
                 <DropdownMenu>
