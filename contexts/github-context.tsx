@@ -30,13 +30,6 @@ interface Project {
   createdAt: string
 }
 
-interface ContextFile {
-  name: string
-  path: string
-  size: number
-  type: string
-}
-
 interface GitHubContextType {
   isConnected: boolean
   user: GitHubUser | null
@@ -199,7 +192,7 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     if (!token || !repo) return
     setIsLoading(true)
     try {
-      const files = await fetchContextFiles(repo, token)
+      const files = await fetchContextFiles(token, repo)
       setContextFiles(files || [])
     } catch (err) {
       setError("Failed to fetch context files")
@@ -214,7 +207,7 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoadingContent(true)
     try {
-      const content = await fetchFileContent(repo, file.path, token)
+      const content = await fetchFileContent(token, repo, file.path)
       setSelectedFileContent(content)
     } catch (err) {
       setError("Failed to fetch file content")
@@ -226,12 +219,10 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
   const saveFile = async (path: string, content: string, message = "Update via CXM"): Promise<boolean> => {
     if (!token || !repo) return false
     try {
-      const sha = await fetchFileSha(repo, path, token)
-      const success = await commitFile(repo, path, content, sha, message, token)
-      if (success) {
-        await refreshFiles()
-      }
-      return success
+      const sha = await fetchFileSha(token, repo, path)
+      await commitFile(token, repo, path, sha, content, message)
+      await refreshFiles()
+      return true
     } catch (err) {
       setError("Failed to save file")
       return false
@@ -244,9 +235,9 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     if (!proj) return false
 
     try {
-      const exists = await checkContextFolderExists(proj.repo, token)
+      const exists = await checkContextFolderExists(token, proj.repo)
       if (!exists) {
-        await createContextFolder(proj.repo, token)
+        await createContextFolder(token, proj.repo)
       }
       return true
     } catch {
@@ -261,9 +252,9 @@ export function GitHubProvider({ children }: { children: React.ReactNode }) {
     if (!proj) return false
 
     try {
-      const exists = await checkLlmsTxtExists(proj.repo, token)
+      const exists = await checkLlmsTxtExists(token, proj.repo)
       if (!exists) {
-        await createLlmsTxt(proj.repo, token)
+        await createLlmsTxt(token, proj.repo)
       }
       return true
     } catch {
