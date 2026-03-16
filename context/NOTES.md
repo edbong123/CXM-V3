@@ -2,7 +2,7 @@ ISNTRUCTIONS
 
 - project instruction for Claude
 
-- MCP for Clause
+- MCP for Claude
 
 - MCP for V0 (+ instructions)
 
