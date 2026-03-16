@@ -20,6 +20,10 @@
 
 - [DISCOVERY.md](/context/DISCOVERY.md): Project origin, pain points, reference tools, what we are not building
 
+## Load for task execution
+
+- [TASKS.md](/context/TASKS.md): Enriched prompt definitions for common tasks -- load and match before executing any short or ambiguous user intent
+
 ## Load when available (auto-generated, not yet active)
 
 - SCHEMA.md: Data model from home base
@@ -31,6 +35,16 @@
 - CODEBASE-MAP.md: Module map -- load before any code generation to avoid duplicating existing logic
 
 - CONVENTIONS.md: Detected code patterns -- load before any code generation to avoid contradicting existing patterns
+
+## Generated from PURPOSE.md (not yet active)
+
+- PURPOSE.md: Defines repo intent, tool permissions, and role-to-tool mapping -- source of truth for this file and all tool-specific instruction files
+
+- v0-instructions.md: Auto-generated custom instructions for v0
+
+- cursor-rules.md: Auto-generated .cursorrules for Cursor
+
+- claude-instructions.md: Auto-generated system prompt fragment for Claude Projects
 
 ## Rules that always apply
 
@@ -49,3 +63,5 @@
 - Backend architecture decisions happen in the backend project only
 
 - V2 is iterative on the V1 codebase -- load CODEBASE-MAP.md before generating new modules
+
+- Before executing any short or ambiguous prompt, load TASKS.md and match against defined task intents
