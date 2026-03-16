@@ -1,285 +1,77 @@
 import { NextRequest, NextResponse } from "next/server"
+import { addMcpSuggestion, getPendingMcpSuggestions, type McpSuggestion } from "@/lib/mcp-store"
 
 /**
- * MCP (Model Context Protocol) Server for Context Manager
- * 
- * This endpoint allows external AI assistants to:
- * - List available projects
- * - Get context files for a project
- * - Submit suggestions to context files
- * 
- * Authentication: Bearer token (GitHub PAT) in Authorization header
+ * Simple MCP Server - No Authentication Required
+ * Implements Model Context Protocol for receiving suggestions
  */
 
-// MCP Protocol types
-interface MCPRequest {
-  jsonrpc: "2.0"
-  id: string | number
-  method: string
-  params?: Record<string, unknown>
-}
-
-interface MCPResponse {
-  jsonrpc: "2.0"
-  id: string | number
-  result?: unknown
-  error?: {
-    code: number
-    message: string
-    data?: unknown
-  }
-}
-
-interface MCPToolDefinition {
-  name: string
-  description: string
-  inputSchema: {
-    type: "object"
-    properties: Record<string, unknown>
-    required?: string[]
-  }
-}
-
 // Tool definitions
-const TOOLS: MCPToolDefinition[] = [
-  {
-    name: "list_projects",
-    description: "List all available projects (repositories) configured in the Context Manager",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      required: []
-    }
-  },
-  {
-    name: "get_project_files",
-    description: "Get all context files for a specific project",
-    inputSchema: {
-      type: "object",
-      properties: {
-        project_id: {
-          type: "string",
-          description: "The project ID (repository in owner/repo format)"
-        }
-      },
-      required: ["project_id"]
-    }
-  },
-  {
-    name: "get_file_content",
-    description: "Get the content of a specific context file",
-    inputSchema: {
-      type: "object",
-      properties: {
-        project_id: {
-          type: "string",
-          description: "The project ID (repository in owner/repo format)"
-        },
-        file_path: {
-          type: "string",
-          description: "Path to the file within the context folder (e.g., 'DECISIONS.md')"
-        }
-      },
-      required: ["project_id", "file_path"]
-    }
-  },
+const TOOLS = [
   {
     name: "submit_suggestion",
     description: "Submit a suggestion for a context file. The suggestion will appear in the Context Manager UI for review.",
     inputSchema: {
       type: "object",
       properties: {
-        project_id: {
+        suggestion: {
           type: "string",
-          description: "The project ID (repository in owner/repo format)"
+          description: "The suggestion text content"
         },
-        file_path: {
+        file_hint: {
           type: "string",
-          description: "Path to the file (e.g., 'context/DECISIONS.md')"
-        },
-        suggestion_type: {
-          type: "string",
-          enum: ["add", "update", "remove"],
-          description: "Type of suggestion: add new content, update existing, or remove content"
-        },
-        before: {
-          type: "string",
-          description: "The original text to be replaced (for update/remove). Empty for 'add' type."
-        },
-        after: {
-          type: "string",
-          description: "The new text to insert (for add/update). Empty for 'remove' type."
+          description: "Optional hint about which file this applies to (e.g., 'decisions', 'questions', 'roles')"
         },
         rationale: {
           type: "string",
-          description: "Explanation of why this change is suggested"
-        },
-        source: {
-          type: "string",
-          description: "Source identifier (e.g., 'claude-mcp', 'chatgpt-mcp')"
+          description: "Why this suggestion is being made"
         }
       },
-      required: ["project_id", "file_path", "suggestion_type", "after", "rationale"]
+      required: ["suggestion"]
+    }
+  },
+  {
+    name: "list_context_files",
+    description: "List the standard context files available",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: []
     }
   }
 ]
 
-// GitHub API helpers
-async function fetchWithGitHub(token: string, url: string) {
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28"
-    }
-  })
-  if (!res.ok) {
-    throw new Error(`GitHub API error: ${res.status} ${res.statusText}`)
-  }
-  return res.json()
-}
+// Standard context files
+const CONTEXT_FILES = [
+  { name: "DECISIONS.md", description: "Technical and business decisions", keywords: ["decision", "decided", "chose", "architecture"] },
+  { name: "OPEN-QUESTIONS.md", description: "Unresolved questions", keywords: ["question", "unclear", "todo", "investigate"] },
+  { name: "ROLES.md", description: "Team roles and responsibilities", keywords: ["role", "responsibility", "team", "owner"] },
+  { name: "TASKS.md", description: "Current tasks", keywords: ["task", "todo", "action", "implement"] },
+  { name: "NOTES.md", description: "General notes", keywords: ["note", "observation", "finding"] },
+  { name: "GLOSSARY.md", description: "Terminology", keywords: ["term", "definition", "glossary", "meaning"] },
+  { name: "DISCOVERY.md", description: "Research findings", keywords: ["discovery", "research", "learned", "found"] },
+  { name: "PROJECT.md", description: "Project overview", keywords: ["project", "goal", "objective", "scope"] }
+]
 
-async function getContextFiles(token: string, repo: string) {
-  try {
-    const data = await fetchWithGitHub(
-      token,
-      `https://api.github.com/repos/${repo}/contents/context`
-    )
-    if (!Array.isArray(data)) return []
-    return data
-      .filter((item: { type: string; name: string }) => item.type === "file" && item.name.endsWith(".md"))
-      .map((item: { name: string; path: string; sha: string }) => ({
-        name: item.name,
-        path: item.path,
-        sha: item.sha
-      }))
-  } catch {
-    return []
-  }
-}
-
-async function getFileContent(token: string, repo: string, path: string) {
-  const data = await fetchWithGitHub(
-    token,
-    `https://api.github.com/repos/${repo}/contents/${path}`
-  )
-  const content = Buffer.from(data.content, "base64").toString("utf-8")
-  return { content, sha: data.sha }
-}
-
-import { addMcpSuggestion, getPendingMcpSuggestions, type McpSuggestion } from "@/lib/mcp-store"
-
-// Tool handlers
-async function handleListProjects(token: string) {
-  // Verify token works by fetching user
-  const user = await fetchWithGitHub(token, "https://api.github.com/user")
+// Detect which file a suggestion belongs to
+function detectTargetFile(suggestion: string, hint?: string): string {
+  const text = (suggestion + " " + (hint || "")).toLowerCase()
   
-  // Get user's repositories
-  const repos = await fetchWithGitHub(
-    token,
-    "https://api.github.com/user/repos?per_page=100&sort=updated"
-  )
-  
-  // Filter to repos that have a context folder
-  const projectsWithContext = []
-  for (const repo of repos.slice(0, 20)) { // Limit to first 20 for performance
-    try {
-      await fetchWithGitHub(token, `https://api.github.com/repos/${repo.full_name}/contents/context`)
-      projectsWithContext.push({
-        id: repo.full_name,
-        name: repo.name,
-        owner: repo.owner.login,
-        description: repo.description,
-        url: repo.html_url
-      })
-    } catch {
-      // No context folder, skip
+  for (const file of CONTEXT_FILES) {
+    for (const keyword of file.keywords) {
+      if (text.includes(keyword)) {
+        return file.name
+      }
     }
   }
   
-  return {
-    user: user.login,
-    projects: projectsWithContext
-  }
-}
-
-async function handleGetProjectFiles(token: string, params: { project_id: string }) {
-  const files = await getContextFiles(token, params.project_id)
-  return {
-    project_id: params.project_id,
-    files: files.map((f: { name: string; path: string }) => ({
-      name: f.name,
-      path: f.path
-    }))
-  }
-}
-
-async function handleGetFileContent(token: string, params: { project_id: string; file_path: string }) {
-  const { content, sha } = await getFileContent(token, params.project_id, params.file_path)
-  return {
-    project_id: params.project_id,
-    file_path: params.file_path,
-    content,
-    sha
-  }
-}
-
-async function handleSubmitSuggestion(
-  token: string, 
-  params: {
-    project_id: string
-    file_path: string
-    suggestion_type: "add" | "update" | "remove"
-    before?: string
-    after: string
-    rationale: string
-    source?: string
-  }
-) {
-  // Verify the project exists and user has access
-  await fetchWithGitHub(token, `https://api.github.com/repos/${params.project_id}`)
-  
-  // Create suggestion
-  const suggestion: McpSuggestion = {
-    id: `mcp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-    project_id: params.project_id,
-    file_path: params.file_path,
-    type: params.suggestion_type,
-    before: params.before || "",
-    after: params.after,
-    rationale: params.rationale,
-    source: params.source || "mcp-client",
-    timestamp: new Date().toISOString(),
-    status: "pending"
-  }
-  
-  // Store suggestion using shared store
-  addMcpSuggestion(suggestion)
-  
-  return {
-    success: true,
-    suggestion_id: suggestion.id,
-    message: `Suggestion submitted for ${params.file_path}. It will appear in the Context Manager UI for review.`
-  }
-}
-
-// Get pending suggestions for a project (internal API for the UI)
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const projectId = searchParams.get("project_id")
-  
-  if (!projectId) {
-    return NextResponse.json({ error: "project_id required" }, { status: 400 })
-  }
-  
-  const suggestions = suggestionStore.get(projectId) || []
-  return NextResponse.json({ suggestions })
+  return "NOTES.md" // Default
 }
 
 // MCP Protocol handler
 export async function POST(req: NextRequest) {
   try {
-    const body: MCPRequest = await req.json()
+    const body = await req.json()
     
     // Validate JSON-RPC format
     if (body.jsonrpc !== "2.0" || !body.method) {
@@ -287,12 +79,8 @@ export async function POST(req: NextRequest) {
         jsonrpc: "2.0",
         id: body.id || null,
         error: { code: -32600, message: "Invalid Request" }
-      } as MCPResponse)
+      })
     }
-    
-    // Get auth token
-    const authHeader = req.headers.get("authorization")
-    const token = authHeader?.replace("Bearer ", "")
     
     // Handle MCP methods
     switch (body.method) {
@@ -306,11 +94,16 @@ export async function POST(req: NextRequest) {
               tools: {}
             },
             serverInfo: {
-              name: "context-manager-mcp",
+              name: "cxm-suggestions",
               version: "1.0.0"
             }
           }
-        } as MCPResponse)
+        })
+      }
+      
+      case "notifications/initialized": {
+        // Notification - no response needed
+        return new Response(null, { status: 202 })
       }
       
       case "tools/list": {
@@ -318,93 +111,165 @@ export async function POST(req: NextRequest) {
           jsonrpc: "2.0",
           id: body.id,
           result: { tools: TOOLS }
-        } as MCPResponse)
+        })
       }
       
       case "tools/call": {
-        if (!token) {
-          return NextResponse.json({
-            jsonrpc: "2.0",
-            id: body.id,
-            error: { 
-              code: -32001, 
-              message: "Authentication required. Provide GitHub PAT in Authorization header." 
-            }
-          } as MCPResponse)
-        }
-        
         const params = body.params as { name: string; arguments?: Record<string, unknown> }
         const toolName = params?.name
         const toolArgs = params?.arguments || {}
         
-        try {
-          let result: unknown
-          
-          switch (toolName) {
-            case "list_projects":
-              result = await handleListProjects(token)
-              break
-            case "get_project_files":
-              result = await handleGetProjectFiles(token, toolArgs as { project_id: string })
-              break
-            case "get_file_content":
-              result = await handleGetFileContent(token, toolArgs as { project_id: string; file_path: string })
-              break
-            case "submit_suggestion":
-              result = await handleSubmitSuggestion(token, toolArgs as {
-                project_id: string
-                file_path: string
-                suggestion_type: "add" | "update" | "remove"
-                before?: string
-                after: string
-                rationale: string
-                source?: string
-              })
-              break
-            default:
-              return NextResponse.json({
-                jsonrpc: "2.0",
-                id: body.id,
-                error: { code: -32601, message: `Unknown tool: ${toolName}` }
-              } as MCPResponse)
+        if (toolName === "list_context_files") {
+          return NextResponse.json({
+            jsonrpc: "2.0",
+            id: body.id,
+            result: {
+              content: [{
+                type: "text",
+                text: JSON.stringify({
+                  files: CONTEXT_FILES.map(f => ({ name: f.name, description: f.description }))
+                }, null, 2)
+              }]
+            }
+          })
+        }
+        
+        if (toolName === "submit_suggestion") {
+          const { suggestion, file_hint, rationale } = toolArgs as {
+            suggestion: string
+            file_hint?: string
+            rationale?: string
           }
           
-          return NextResponse.json({
-            jsonrpc: "2.0",
-            id: body.id,
-            result: { content: [{ type: "text", text: JSON.stringify(result, null, 2) }] }
-          } as MCPResponse)
+          if (!suggestion) {
+            return NextResponse.json({
+              jsonrpc: "2.0",
+              id: body.id,
+              error: { code: -32602, message: "Missing required parameter: suggestion" }
+            })
+          }
           
-        } catch (error) {
+          const targetFile = detectTargetFile(suggestion, file_hint)
+          
+          // Store the suggestion
+          const suggestionObj: McpSuggestion = {
+            id: `mcp-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+            project_id: "default",
+            file_path: `context/${targetFile}`,
+            type: "add",
+            before: "",
+            after: suggestion,
+            rationale: rationale || "Submitted via MCP",
+            source: "claude-mcp",
+            timestamp: new Date().toISOString(),
+            status: "pending"
+          }
+          
+          addMcpSuggestion(suggestionObj)
+          
           return NextResponse.json({
             jsonrpc: "2.0",
             id: body.id,
-            error: { 
-              code: -32000, 
-              message: error instanceof Error ? error.message : "Tool execution failed" 
+            result: {
+              content: [{
+                type: "text",
+                text: JSON.stringify({
+                  success: true,
+                  suggestion_id: suggestionObj.id,
+                  target_file: targetFile,
+                  message: `Suggestion submitted for ${targetFile}. It will appear in the Context Manager for review.`
+                }, null, 2)
+              }]
             }
-          } as MCPResponse)
+          })
         }
+        
+        return NextResponse.json({
+          jsonrpc: "2.0",
+          id: body.id,
+          error: { code: -32601, message: `Unknown tool: ${toolName}` }
+        })
+      }
+      
+      case "ping": {
+        return NextResponse.json({
+          jsonrpc: "2.0",
+          id: body.id,
+          result: {}
+        })
       }
       
       default: {
         return NextResponse.json({
           jsonrpc: "2.0",
           id: body.id,
-          error: { code: -32601, message: "Method not found" }
-        } as MCPResponse)
+          error: { code: -32601, message: `Method not found: ${body.method}` }
+        })
       }
     }
     
   } catch (error) {
+    console.error("[MCP] Error:", error)
     return NextResponse.json({
       jsonrpc: "2.0",
       id: null,
       error: { 
         code: -32700, 
-        message: "Parse error",
-        data: error instanceof Error ? error.message : undefined
+        message: "Parse error"
       }
-    } as MCPResponse)
+    }, { status: 400 })
   }
+}
+
+// GET handler for SSE (server-to-client messages)
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url)
+  const projectId = searchParams.get("project_id")
+  
+  // If project_id provided, return suggestions for that project
+  if (projectId) {
+    const suggestions = getPendingMcpSuggestions(projectId)
+    return NextResponse.json({ suggestions })
+  }
+  
+  // Otherwise return SSE stream
+  const accept = req.headers.get("accept") || ""
+  
+  if (!accept.includes("text/event-stream")) {
+    // Return simple status
+    return NextResponse.json({
+      status: "ok",
+      server: "cxm-suggestions",
+      version: "1.0.0"
+    })
+  }
+  
+  // Return SSE stream
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    start(controller) {
+      // Send initial ping
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ jsonrpc: "2.0", method: "ping" })}\n\n`))
+    }
+  })
+  
+  return new Response(stream, {
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    }
+  })
+}
+
+// OPTIONS for CORS
+export async function OPTIONS() {
+  return new Response(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Accept, Authorization, Mcp-Session-Id",
+    }
+  })
 }
