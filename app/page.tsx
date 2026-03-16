@@ -26,7 +26,7 @@ export default function Page() {
 }
 
 function AppShell() {
-  const { user, repo, repoConnected, activeProject, fetchFiles, error, clearError } = useGitHub()
+  const { user, repo, repoConnected, activeProject, refreshFiles, error, clearError } = useGitHub()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [addProjectOpen, setAddProjectOpen] = useState(false)
   const [projectSettingsOpen, setProjectSettingsOpen] = useState(false)
@@ -79,7 +79,7 @@ function AppShell() {
   // Auto-fetch files when project is active
   useEffect(() => {
     if (user && activeProject) {
-      fetchFiles()
+      refreshFiles()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, activeProject?.id])
