@@ -23,6 +23,7 @@ import {
 import { FileText, Plus, RefreshCw, MoreHorizontal, Trash2, Loader2, MessageSquare, Settings } from "lucide-react"
 import { createFile, deleteFile, fetchLlmsTxt } from "@/lib/github-client"
 import type { ContextFile } from "@/lib/github-client"
+import { ProjectSelector } from "@/components/project-selector"
 
 interface ContextFilesListProps {
   onNewChat?: () => void
@@ -95,6 +96,9 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
 
   return (
     <div className="flex flex-col h-full">
+      {/* Project Selector */}
+      <ProjectSelector onAddProject={onAddProject} onOpenProjectSettings={onOpenProjectSettings} />
+
       {/* New Chat button */}
       <div className="px-3 pt-3 pb-2">
         <Button
