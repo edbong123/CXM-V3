@@ -246,12 +246,12 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
               </div>
             ) : (
               sortedFiles.map((file) => {
-              const isSelected = selectedFile?.path === file.path
-              const displayName = file.name.replace(/\.md$/, "")
-              const isDeleting = deletingPath === file.path
-              const suggestionCount = getSuggestionCount(file.name)
+                const isSelected = selectedFile?.path === file.path
+                const displayName = file.name.replace(/\.md$/, "")
+                const isDeleting = deletingPath === file.path
+                const suggestionCount = getSuggestionCount(file.name)
 
-              return (
+                return (
                 <div
                   key={file.path}
                   className={cn(
@@ -310,8 +310,9 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-              )
-            })}
+                )
+              })
+            )}
           </div>
         )}
       </div>
