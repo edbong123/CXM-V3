@@ -55,7 +55,7 @@ const TYPE_CONFIG: Record<Suggestion["type"] | "mock", { label: string; icon: Re
 }
 
 export function SuggestionsPanel({ onIncorporated, onProcessingChange, isProcessing, onOpenChat }: SuggestionsPanelProps) {
-  const { selectedFile, fileContent } = useGitHub()
+  const { selectedFile, selectedFileContent: fileContent } = useGitHub()
   const { getSuggestionsForFile, updateSuggestionStatus } = useSuggestions()
 
   // Get mock suggestions from the library
