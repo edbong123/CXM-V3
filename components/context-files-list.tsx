@@ -1,4 +1,6 @@
-"use client"
+"// Context Files List Component
+// Cache bust: 2026-03-16T15:30:00Z - Restructured for proper LLMS/Context separation
+"use client""
 
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
