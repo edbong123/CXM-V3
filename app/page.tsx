@@ -8,6 +8,7 @@ import { GitHubProvider, useGitHub } from "@/contexts/github-context"
 import { SuggestionsProvider } from "@/contexts/suggestions-context"
 import { SettingsPanel } from "@/components/settings-panel"
 import { AddProjectDialog } from "@/components/add-project-dialog"
+import { ProjectSettingsDialog } from "@/components/project-settings-dialog"
 import { ContextFilesList } from "@/components/context-files-list"
 import { FileViewer } from "@/components/file-viewer"
 import { ChatView } from "@/components/chat-view"
@@ -28,6 +29,13 @@ function AppShell() {
   const { user, repo, repoConnected, activeProject, fetchFiles, error, clearError } = useGitHub()
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [addProjectOpen, setAddProjectOpen] = useState(false)
+  const [projectSettingsOpen, setProjectSettingsOpen] = useState(false)
+  const [projectSettingsId, setProjectSettingsId] = useState<string | null>(null)
+
+  const handleOpenProjectSettings = (projectId: string) => {
+    setProjectSettingsId(projectId)
+    setProjectSettingsOpen(true)
+  }
   const [copied, setCopied] = useState(false)
 
   const gitMcpUrl = repo ? `gitmcp.io/${repo}` : null
@@ -147,6 +155,7 @@ function AppShell() {
             onFileSelect={() => setChatMode(false)} 
             onOpenSettings={() => setSettingsOpen(true)}
             onAddProject={() => setAddProjectOpen(true)}
+            onOpenProjectSettings={handleOpenProjectSettings}
           />
           <main className="flex-1 overflow-hidden">
             {chatMode ? (
@@ -160,6 +169,11 @@ function AppShell() {
 
       <SettingsPanel open={settingsOpen} onClose={() => setSettingsOpen(false)} />
       <AddProjectDialog open={addProjectOpen} onClose={() => setAddProjectOpen(false)} />
+      <ProjectSettingsDialog 
+        open={projectSettingsOpen} 
+        onClose={() => { setProjectSettingsOpen(false); setProjectSettingsId(null) }} 
+        projectId={projectSettingsId} 
+      />
     </div>
   )
 }

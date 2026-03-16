@@ -31,9 +31,10 @@ interface ContextFilesListProps {
   onFileSelect?: () => void
   onOpenSettings: () => void
   onAddProject: () => void
+  onOpenProjectSettings: (projectId: string) => void
 }
 
-export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAddProject }: ContextFilesListProps) {
+export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAddProject, onOpenProjectSettings }: ContextFilesListProps) {
   const { files, llmsFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, activeProject } = useGitHub()
   const repo = activeProject?.repo || ""
   const { getSuggestionsForFile: getContextSuggestions } = useSuggestions()
@@ -89,7 +90,7 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
     <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
 
       {/* Project Selector */}
-      <ProjectSelector onOpenSettings={onOpenSettings} onAddProject={onAddProject} />
+      <ProjectSelector onOpenSettings={onOpenSettings} onAddProject={onAddProject} onOpenProjectSettings={onOpenProjectSettings} />
 
       {/* New Chat button */}
       <div className="px-2 pt-3 pb-1">

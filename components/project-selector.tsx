@@ -16,9 +16,10 @@ import { cn } from "@/lib/utils"
 interface ProjectSelectorProps {
   onOpenSettings: () => void
   onAddProject: () => void
+  onOpenProjectSettings: (projectId: string) => void
 }
 
-export function ProjectSelector({ onOpenSettings, onAddProject }: ProjectSelectorProps) {
+export function ProjectSelector({ onOpenSettings, onAddProject, onOpenProjectSettings }: ProjectSelectorProps) {
   const { user, projects, activeProject, setActiveProject, removeProject, fetchFiles } = useGitHub()
   const [isOpen, setIsOpen] = useState(false)
   const [switching, setSwitching] = useState(false)
@@ -122,9 +123,9 @@ export function ProjectSelector({ onOpenSettings, onAddProject }: ProjectSelecto
                     </div>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        onClick={(e) => { e.stopPropagation(); setIsOpen(false); onOpenSettings() }}
+                        onClick={(e) => { e.stopPropagation(); setIsOpen(false); onOpenProjectSettings(project.id) }}
                         className="p-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                        title="Settings"
+                        title="Project settings"
                       >
                         <Settings className="h-3 w-3" />
                       </button>
