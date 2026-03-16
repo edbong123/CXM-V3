@@ -180,14 +180,17 @@ export function SettingsPanel({ open, onClose }: SettingsPanelProps) {
                 )}
               </div>
 
-              <Button
-                variant="outline"
-                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                onClick={handleDisconnect}
-              >
-                <LogOut className="h-4 w-4" />
-                Disconnect Account
-              </Button>
+              <div className="flex items-center justify-between pt-1">
+                <button
+                  onClick={handleDisconnect}
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors underline-offset-2 hover:underline"
+                >
+                  Disconnect account
+                </button>
+                <Button onClick={onClose}>
+                  Continue
+                </Button>
+              </div>
             </div>
           )}
 
