@@ -98,34 +98,36 @@ function AppShell() {
 
         {/* MCP Icons */}
         {activeProject && (
-          <div className="flex items-center gap-1">
-            {/* MCP In - receive suggestions */}
+          <div className="flex items-center gap-2">
+            {/* MCP Icon IN - receive suggestions */}
             <button
               onClick={handleCopyMcpIn}
               title="Copy MCP Inbound URL (receive suggestions from Claude)"
               className={cn(
-                "flex items-center justify-center rounded-md px-2 py-1.5 transition-colors border",
+                "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors border text-xs font-medium",
                 copiedIn
                   ? "bg-emerald-50 border-emerald-200 text-emerald-600"
                   : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
               )}
             >
-              {copiedIn ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
+              {copiedIn ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
+              <span>MCP Icon IN</span>
             </button>
             
-            {/* MCP Out - GitMCP for context */}
+            {/* MCP Icon OUT - GitMCP for context */}
             {mcpOutUrl && (
               <button
                 onClick={handleCopyMcpOut}
                 title="Copy GitMCP URL (share context)"
                 className={cn(
-                  "flex items-center justify-center rounded-md px-2 py-1.5 transition-colors border",
+                  "flex items-center gap-1.5 rounded-md px-2.5 py-1.5 transition-colors border text-xs font-medium",
                   copiedOut
                     ? "bg-emerald-50 border-emerald-200 text-emerald-600"
                     : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
                 )}
               >
-                {copiedOut ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
+                {copiedOut ? <Check className="h-3.5 w-3.5" /> : <Clipboard className="h-3.5 w-3.5" />}
+                <span>MCP Icon OUT</span>
               </button>
             )}
           </div>
