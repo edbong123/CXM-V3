@@ -1,3 +1,4 @@
+---
 **INSTRUCTIONS**
 
 - GitHub setup
@@ -28,6 +29,10 @@ V0
 - on every doc show a summary and show its purpose and phase
 - a "deploy knowledge:" function. Like project publishig thaty cleans up the llms.txt file etc. and removes overlaps.
 
+**WARP SPEED**  
+Description: A feature designed to enhance the speed of document processing and validation, allowing users to work more efficiently.  
+Benefits: Reduces waiting time for document validation, increases productivity, and improves user experience.
+
 **FIXES**
 
 1. editor: specials chars, preview vs edit formarting, allow for URLs?
@@ -47,3 +52,4 @@ dot not support intentedb. sub bullets
 - Notes
 - file description
 - prupose
+---
