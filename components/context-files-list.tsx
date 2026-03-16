@@ -310,7 +310,7 @@ export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAd
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-                )
+                );
               })
             )}
           </div>
