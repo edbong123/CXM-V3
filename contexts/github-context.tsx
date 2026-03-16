@@ -2,7 +2,16 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react"
 import type { ContextFile } from "@/lib/github-client"
-import { fetchContextFiles, fetchFileContent, fetchFileSha, commitFile, checkLlmsTxtExists, createLlmsTxt, checkContextFolderExists, createContextFolder } from "@/lib/github-client"
+import { 
+  fetchContextFiles, 
+  fetchFileContent, 
+  fetchFileSha, 
+  commitFile, 
+  checkLlmsTxtExists, 
+  createLlmsTxt, 
+  checkContextFolderExists, 
+  createContextFolder 
+} from "@/lib/github-client"
 
 interface GitHubUser {
   login: string
