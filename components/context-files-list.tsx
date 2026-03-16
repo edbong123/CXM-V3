@@ -1,7 +1,8 @@
 "use client"
 
 import { useState } from "react"
-import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo, RotateCw, MoreHorizontal, Trash2 } from "lucide-react"
+import { FileText, Plus, Loader2, RefreshCw, MessageCircle, ListTodo, RotateCw, MoreHorizontal, Trash2, Settings } from "lucide-react"
+import { ProjectSelector } from "./project-selector"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -28,10 +29,13 @@ import { toast } from "sonner"
 interface ContextFilesListProps {
   onNewChat: () => void
   onFileSelect?: () => void
+  onOpenSettings: () => void
+  onAddProject: () => void
 }
 
-export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListProps) {
-  const { files, llmsFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, repo } = useGitHub()
+export function ContextFilesList({ onNewChat, onFileSelect, onOpenSettings, onAddProject }: ContextFilesListProps) {
+  const { files, llmsFile, isLoadingFiles, fetchFiles, selectedFile, selectFile, token, activeProject } = useGitHub()
+  const repo = activeProject?.repo || ""
   const { getSuggestionsForFile: getContextSuggestions } = useSuggestions()
 
   const getSuggestionCount = (fileName: string) => {
@@ -83,6 +87,9 @@ export function ContextFilesList({ onNewChat, onFileSelect }: ContextFilesListPr
 
   return (
     <aside className="flex flex-col h-full w-[240px] min-w-[240px] bg-sidebar border-r">
+
+      {/* Project Selector */}
+      <ProjectSelector onOpenSettings={onOpenSettings} onAddProject={onAddProject} />
 
       {/* New Chat button */}
       <div className="px-2 pt-3 pb-1">
