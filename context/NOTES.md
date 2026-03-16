@@ -24,6 +24,8 @@
 
 1. editor: specials chars, preview vs edit formarting, allow for URLs?
 
+dot not support intentedb. sub bullets
+
 **THINK**
 
 1. Visual style setting for prototype
