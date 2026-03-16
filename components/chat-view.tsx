@@ -36,7 +36,7 @@ interface ChatViewProps {
 }
 
 export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
-  const { files, llmFile, token, repo } = useGitHub()
+  const { files, llmsFile, token, repo } = useGitHub()
   const { addSuggestion } = useSuggestions()
   const [message, setMessage] = useState("")
   const [selectedFiles, setSelectedFiles] = useState<string[]>(initialFile ? [initialFile] : [])
@@ -69,7 +69,7 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
       setIsTyping(true)
 
       // Fetch file content first, then call API
-      const allFiles = [...files, llmFile].filter(Boolean)
+      const allFiles = [...files, llmsFile].filter(Boolean)
       const file = allFiles.find(f => f?.name.replace(/\.(md|txt)$/, "") === initialFile)
       
       const fetchAndAsk = async () => {
@@ -115,7 +115,7 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
         })
         .finally(() => setIsTyping(false))
     }
-  }, [initialMode, initialFile, hasTriggeredInitialMode, token, repo, files, llmFile])
+  }, [initialMode, initialFile, hasTriggeredInitialMode, token, repo, files, llmsFile])
 
   // Sort files: README first, then alphabetical
   const sortedFiles = [...files].sort((a, b) => {
@@ -171,7 +171,7 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
 
     try {
       // Fetch content for attached files
-      const allFiles = [...files, llmFile].filter(Boolean)
+      const allFiles = [...files, llmsFile].filter(Boolean)
       const fileContents: Record<string, string> = {}
       
       for (const fileName of sentFiles) {
@@ -241,7 +241,7 @@ export function ChatView({ onClose, initialFile, initialMode }: ChatViewProps) {
     try {
       // Get the attached file content
       const fileName = msg.attachedFiles[0]
-      const allFiles = [...files, llmFile].filter(Boolean)
+      const allFiles = [...files, llmsFile].filter(Boolean)
       const file = allFiles.find(f => f?.name.replace(/\.(md|txt)$/, "") === fileName)
       
       let documentContent = ""
