@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Settings, Github, AlertCircle, Copy, Check, ArrowDownToLine, ArrowUpFromLine } from "lucide-react"
+import { Settings, Github, AlertCircle, Copy, Check, Clipboard } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Toaster } from "sonner"
 import { GitHubProvider, useGitHub } from "@/contexts/github-context"
@@ -102,17 +102,15 @@ function AppShell() {
             {/* MCP In - receive suggestions */}
             <button
               onClick={handleCopyMcpIn}
-              title="Copy MCP Inbound URL (receive suggestions)"
+              title="Copy MCP Inbound URL (receive suggestions from Claude)"
               className={cn(
-                "flex items-center gap-1.5 rounded-md px-2 py-1.5 transition-colors border",
+                "flex items-center justify-center rounded-md px-2 py-1.5 transition-colors border",
                 copiedIn
                   ? "bg-emerald-50 border-emerald-200 text-emerald-600"
                   : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
               )}
             >
-              <ArrowDownToLine className="h-3.5 w-3.5" />
-              <span className="text-xs font-medium">MCP In</span>
-              {copiedIn && <Check className="h-3 w-3" />}
+              {copiedIn ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
             </button>
             
             {/* MCP Out - GitMCP for context */}
@@ -121,15 +119,13 @@ function AppShell() {
                 onClick={handleCopyMcpOut}
                 title="Copy GitMCP URL (share context)"
                 className={cn(
-                  "flex items-center gap-1.5 rounded-md px-2 py-1.5 transition-colors border",
+                  "flex items-center justify-center rounded-md px-2 py-1.5 transition-colors border",
                   copiedOut
                     ? "bg-emerald-50 border-emerald-200 text-emerald-600"
                     : "bg-muted/40 border-transparent hover:bg-muted/80 text-muted-foreground hover:text-foreground"
                 )}
               >
-                <ArrowUpFromLine className="h-3.5 w-3.5" />
-                <span className="text-xs font-medium">MCP Out</span>
-                {copiedOut && <Check className="h-3 w-3" />}
+                {copiedOut ? <Check className="h-4 w-4" /> : <Clipboard className="h-4 w-4" />}
               </button>
             )}
           </div>
