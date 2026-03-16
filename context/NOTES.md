@@ -14,6 +14,8 @@ FEATURES
 
 2. Validate llms.txt and provide improvements
 
+- 3. Commit/Save : Just add a default text
+
 FIXES
 
 1. editor: specials chars, preview vs edit formarting, allow for URLs?
