@@ -20,7 +20,7 @@ interface ProjectSelectorProps {
 }
 
 export function ProjectSelector({ onOpenSettings, onAddProject, onOpenProjectSettings }: ProjectSelectorProps) {
-  const { user, projects, activeProject, setActiveProject, removeProject, fetchFiles } = useGitHub()
+  const { user, projects, activeProject, setActiveProject, removeProject, refreshFiles } = useGitHub()
   const [isOpen, setIsOpen] = useState(false)
   const [switching, setSwitching] = useState(false)
 
@@ -36,7 +36,7 @@ export function ProjectSelector({ onOpenSettings, onAddProject, onOpenProjectSet
     setIsOpen(false)
     // Fetch files for the new project
     setTimeout(async () => {
-      await fetchFiles()
+      await refreshFiles()
       setSwitching(false)
     }, 100)
   }
@@ -97,7 +97,6 @@ export function ProjectSelector({ onOpenSettings, onAddProject, onOpenProjectSet
               </div>
               {projects.map((project) => {
                 const isActive = activeProject?.id === project.id
-                const isReady = project.contextFolderReady && project.llmsTxtReady
                 
                 return (
                   <DropdownMenuItem
@@ -114,12 +113,7 @@ export function ProjectSelector({ onOpenSettings, onAddProject, onOpenProjectSet
                       ) : (
                         <div className="w-3.5" />
                       )}
-                      <div className="flex flex-col min-w-0">
-                        <span className="text-sm truncate">{getRepoShortName(project.repo)}</span>
-                        {!isReady && (
-                          <span className="text-[10px] text-amber-600">Setup incomplete</span>
-                        )}
-                      </div>
+                      <span className="text-sm truncate">{getRepoShortName(project.repo)}</span>
                     </div>
                     <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
